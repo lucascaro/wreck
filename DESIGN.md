@@ -39,7 +39,11 @@ User experience > Flexibility > Developer Experience > Ease of Implementation.
 - save bandwidth by doing HEAD requests when it makes sense.
 - can start with a single URL in argument
 - can start with a list of URLs in stdin
-- processes each file only once
+- processes each URL only once
+- robots.txt handling
+- crawl depth limiting
+- crawl domain limiting
+- request rate limiting
 - simple default reporting
 - configurable concurrency
 - ad-hoc REST api? normal fork? pros / cons?
