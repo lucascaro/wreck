@@ -10,6 +10,7 @@ export interface MainProcessParameters {
   concurrency: number;
   nRetries: number;
   nWorkers: number;
+  rateLimit: number;
 }
 // const child = fork(path);
 // const crawler = new Crawler(valid).start();
@@ -26,6 +27,7 @@ export default class MainProcess {
   private workers!: ChildProcess[];
   private initialURLs: string[];
   private concurrency: number;
+  private rateLimit: number;
   private nRetries: number;
   private nWorkers: number;
 
@@ -37,6 +39,7 @@ export default class MainProcess {
     debug(this.initialURLs);
     this.nWorkers = params.nWorkers || os.cpus().length;
     this.concurrency = params.concurrency || 1;
+    this.rateLimit = params.rateLimit || 5;
     this.nRetries = params.nRetries || 3;
 
     this.createSubprocesses();
@@ -59,6 +62,11 @@ export default class MainProcess {
     // const magicPort = 9329;
 
     this.queue = fork(`${__dirname }/queue`, [], {
+      env: {
+        ...process.env,
+        WRECK_RATE_LIMIT_RATE: String(this.rateLimit),
+        WRECK_RATE_LIMIT_CONCURRENCY: String(this.concurrency),
+      },
       // execArgv: ['--inspect-brk', `--inspect=${magicPort += 1}`],
     });
     this.workers = [...Array(this.nWorkers)].map((_, i) => {

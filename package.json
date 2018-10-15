@@ -36,6 +36,7 @@
     "cheerio": "^1.0.0-rc.2",
     "console-commando": "^4.0.0",
     "debug": "^4.1.0",
-    "node-fetch": "^2.2.0"
+    "node-fetch": "^2.2.0",
+    "p-ratelimit": "^0.9.5"
   }
 }

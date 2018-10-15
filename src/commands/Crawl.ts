@@ -11,9 +11,10 @@ export default new Commando('crawl')
   .option('-u --url <URL>', 'Crawl starting from this URL')
   .option('-r --retries <number>', 'Maximum retries for a URL', 3)
   .option('-w --workers <nWorkers>', 'Start this many workers. Defaults to one per CPU.')
+  .option('-r --rate-limit <number>', 'Number of requests that will be made per second.')
   .option(
     '-c --concurrency <concurrency>',
-    'How many requests can be active per worker at the same time.',
+    'How many requests can be active at the same time.',
     10,
   )
   // .argument('<URL>', 'Crawl starting from this URL')
@@ -47,5 +48,11 @@ export default new Commando('crawl')
     debug(valid.join('\n'));
     const nWorkers = command.getOption('workers');
     const concurrency = command.getOption('concurrency');
-    const p = new MainProcess(valid, concurrency, nWorkers);
+    const rateLimit = command.getOption('rate-limit');
+    const p = new MainProcess({
+      rateLimit,
+      concurrency,
+      nWorkers,
+      initialURLs: valid,
+    });
   });

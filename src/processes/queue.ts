@@ -1,4 +1,6 @@
 import * as Debug from 'debug';
+import{ pRateLimit } from 'p-ratelimit';
+
 import {
   MessageType,
   WorkMessage,
@@ -20,7 +22,19 @@ process.on('SIGINT', () => {
   debug('exiting');
   // process.exit();
 });
-// TODO: implement queue
+
+const RATE_LIMIT_RATE = Number(process.env.WRECK_RATE_LIMIT_RATE) || 1;
+const RATE_LIMIT_CONCURRENCY = Number(process.env.WRECK_RATE_LIMIT_CONCURRENCY) || 1;
+
+const rateLimitParameters = {
+  interval: 1000 / RATE_LIMIT_RATE,
+  rate: 1,
+  concurrency: RATE_LIMIT_CONCURRENCY,
+  // maxDelay: 2000,
+};
+debug('rateLimitParameters:', rateLimitParameters);
+const limit = pRateLimit(rateLimitParameters);
+
 const workQueue: Set<string> = new Set();
 const workClaims: Map<string, WorkPayload> = new Map();
 const pendingClaims: number[] = [];
@@ -113,7 +127,11 @@ function fulfillPendingClaims() {
     workClaims.set(url, payload);
 
     debug(`fulfilling claim: ${JSON.stringify(payload)}`);
-    send(new WorkMessage(payload));
+    limit(() => {
+      // TODO: concurrency requires handling WORK and DONE in a promise.
+      send(new WorkMessage(payload));
+      return Promise.resolve();
+    });
   }
   debug(`queue size: ${workQueue.size}`);
   debug(`pending claims: ${pendingClaims.length}`);
