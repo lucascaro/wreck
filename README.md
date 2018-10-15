@@ -22,3 +22,4 @@ This project is in the [design](./DESIGN.md) phase.
 - [ ] Code clean-up
 - [ ] Performance and memmory profiling and improvements
 - [ ] Implement all core features
+- [ ] Add to npm registry
