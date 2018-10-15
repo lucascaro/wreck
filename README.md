@@ -15,6 +15,7 @@ This project is in the [design](./DESIGN.md) phase.
   - [x] HTTP retries
   - [x] HEAD and GET requests
   - [x] Shared work queue
+  - [x] Request rate limiting
 - [ ] Unit testing
 - [ ] Functional testing
 - [ ] Incorporate design feedback
