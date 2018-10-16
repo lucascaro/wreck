@@ -1,5 +1,7 @@
 import * as Debug from 'debug';
-import{ pRateLimit } from 'p-ratelimit';
+import { pRateLimit } from 'p-ratelimit';
+
+import Subprocess from '@root/src/helpers/Subprocess';
 
 import {
   MessageType,
@@ -7,38 +9,48 @@ import {
   WorkPayload,
   QueueEmptyMessage,
   DoneMessage,
+  ReadyMessage,
+  messageFromJSON,
 } from '../helpers/Message';
 
 const debug = Debug('wreck:queue');
+const debugTick = Debug('wreck:queue:tick');
 
-if (!process.send) {
-  throw new Error('This module should be spawned as a fork');
-}
-const send = (msg: any) => (process.send ? process.send(msg) : null);
+const subprocess = new Subprocess('queue');
 
-debug('Queue process started');
+debug('process started');
 
-process.on('SIGINT', () => {
-  debug('exiting');
-  // process.exit();
-});
+const RATE_LIMIT_RATE = subprocess.readEnvNumber('WRECK_RATE_LIMIT_RATE', 1);
+const RATE_LIMIT_CONCURRENCY = subprocess.readEnvNumber(
+  'WRECK_RATE_LIMIT_CONCURRENCY',
+  1,
+);
 
-const RATE_LIMIT_RATE = Number(process.env.WRECK_RATE_LIMIT_RATE) || 1;
-const RATE_LIMIT_CONCURRENCY = Number(process.env.WRECK_RATE_LIMIT_CONCURRENCY) || 1;
-
+setInterval(() => {
+  debugTick('---------------------TICK---------------------');
+},          1000);
 const rateLimitParameters = {
-  interval: 1000 / RATE_LIMIT_RATE,
-  rate: 1,
+  interval: RATE_LIMIT_RATE < 100 ? 1000 / RATE_LIMIT_RATE : 1000,
+  rate: RATE_LIMIT_RATE < 100 ? 1 : RATE_LIMIT_RATE,
   concurrency: RATE_LIMIT_CONCURRENCY,
   // maxDelay: 2000,
 };
-debug('rateLimitParameters:', rateLimitParameters);
+
+debugTick('rateLimitParameters:', rateLimitParameters);
 const limit = pRateLimit(rateLimitParameters);
 
+type PendingWorkItem = {
+  url: string,
+  resolve: (value?: void | PromiseLike<void> | undefined) => void,
+  reject: (reason?: any) => void,
+  payload: WorkPayload,
+};
+
 const workQueue: Set<string> = new Set();
-const workClaims: Map<string, WorkPayload> = new Map();
+const workClaims: Map<string, PendingWorkItem> = new Map();
 const pendingClaims: number[] = [];
 const allUrls: Set<string> = new Set();
+
 let finishedUrls: number = 0;
 
 process.on('message', (m) => {
@@ -48,12 +60,11 @@ process.on('message', (m) => {
     debug(m);
     return;
   }
+  const message = messageFromJSON(m);
 
-  switch (m.type) {
+  switch (message.type) {
     case MessageType.WORK: {
       debug('received work item');
-      // TODO: use factory?
-      const message = new WorkMessage(m.payload);
       debug(JSON.stringify(message.payload));
       enqueueURL(message.payload.url);
       break;
@@ -61,39 +72,15 @@ process.on('message', (m) => {
     case MessageType.CLAIM: {
       // TODO: handle claim timeout
       debug('received work claim');
-      debug(m.payload);
-      pendingClaims.push(m.payload.workerNo);
+      debug(message.payload);
+      pendingClaims.push(message.payload.workerNo);
       break;
     }
     case MessageType.DONE: {
       debug('done with work item');
-      debug(m.payload);
-      const message = new DoneMessage(m.payload);
-      const result = message.payload;
+      debug(message.payload);
       finishedUrls += 1;
-      console.log(
-        '->',
-        finishedUrls,
-        result.url,
-        result.statusCode,
-        result.success ? 'OK' : 'ERROR',
-      );
-      workClaims.delete(m.payload.url);
-      const neighbours = m.payload.neighbours;
-      if (Array.isArray(neighbours)) {
-        neighbours.forEach((u) => {
-          // TODO: even if not enqueued, the source url should be
-          // marked as referrer for the neighbours.
-          enqueueURL(u);
-        });
-      }
-      if (
-        workQueue.size === 0
-        && workClaims.size === 0
-      ) {
-        // Queue is done!
-        send(new QueueEmptyMessage());
-      }
+      markAsDone(message as DoneMessage, finishedUrls);
       break;
     }
     default: {
@@ -118,26 +105,70 @@ function fulfillPendingClaims() {
     const url = workQueue.values().next().value;
     debug(`claims: ${pendingClaims}`);
     const claim = pendingClaims.shift();
-    const payload: WorkPayload = {
-      url,
-      workerNo: claim,
-    };
-
     workQueue.delete(url);
-    workClaims.set(url, payload);
-
-    debug(`fulfilling claim: ${JSON.stringify(payload)}`);
+    debugTick(`queue size: ${workQueue.size}`);
+    debugTick(`active claims: ${workClaims.size}`);
     limit(() => {
-      // TODO: concurrency requires handling WORK and DONE in a promise.
-      send(new WorkMessage(payload));
-      return Promise.resolve();
+      return new Promise<void>((resolve, reject)  => {
+        debugTick(`in promise: ${url}`);
+        const pendingWorkItem: PendingWorkItem = {
+          url,
+          resolve,
+          reject,
+          payload: {
+            url,
+            workerNo: claim,
+          },
+        };
+        debug(`fulfilling claim: ${JSON.stringify(pendingWorkItem)}`);
+        workClaims.set(url, pendingWorkItem);
+        // TODO: concurrency requires handling WORK and DONE in a promise.
+        subprocess.send(new WorkMessage(pendingWorkItem.payload));
+        debug(`queue size: ${workQueue.size}`);
+        debug(`pending claims: ${pendingClaims.length}`);
+        debug(`active claims: ${workClaims.size}`);
+        // resolve();
+      })
+      .then(() => {
+        debug(`promise for ${url} resolved...`);
+      })
+      .catch((e) => {
+        debug(`promise for ${url} rejected with ${JSON.stringify(e)}...`);
+      });
     });
   }
-  debug(`queue size: ${workQueue.size}`);
-  debug(`pending claims: ${pendingClaims.length}`);
-  debug(`active claims: ${workClaims.size}`);
 }
 
-send({ type: 'ready' });
+function markAsDone(message: DoneMessage, finishedUrls: number) {
+  const result = message.payload;
+
+  // TODO: move to reporter
+  console.log(
+    '->',
+    finishedUrls,
+    result.url,
+    result.statusCode,
+    result.success ? 'OK' : 'ERROR',
+  );
+  const pendingWorkItem = workClaims.get(result.url);
+  if (pendingWorkItem) {
+    pendingWorkItem.resolve();
+  }
+  workClaims.delete(message.payload.url);
+  const neighbours = message.payload.neighbours;
+  if (Array.isArray(neighbours)) {
+    neighbours.forEach((u) => {
+      // TODO: even if not enqueued, the source url should be
+      // marked as referrer for the neighbours.
+      enqueueURL(u);
+    });
+  }
+  if (workQueue.size === 0 && workClaims.size === 0) {
+        // Queue is done!
+    subprocess.send(new QueueEmptyMessage());
+  }
+}
+
+subprocess.send(new ReadyMessage());
 
 debug('started');

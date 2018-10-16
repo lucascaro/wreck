@@ -59,15 +59,20 @@ export default class MainProcess {
 
   private createSubprocesses() {
     debug('reating queue process');
-    // const magicPort = 9329;
-
+    let magicPort = 9329;
+    const queueExecArgv = process.env.DEBUG_QUEUE ? [
+      `--inspect-brk=${magicPort += 1}`,
+    ] : undefined;
+    const workerExecArgv = process.env.DEBUG_WORKERS ? [
+      `--inspect-brk=${magicPort += 1}`,
+    ] : undefined;
     this.queue = fork(`${__dirname }/queue`, [], {
+      execArgv: queueExecArgv,
       env: {
         ...process.env,
         WRECK_RATE_LIMIT_RATE: String(this.rateLimit),
         WRECK_RATE_LIMIT_CONCURRENCY: String(this.concurrency),
       },
-      // execArgv: ['--inspect-brk', `--inspect=${magicPort += 1}`],
     });
     this.workers = [...Array(this.nWorkers)].map((_, i) => {
       debug(`Creating worker #${i}`);
@@ -75,7 +80,7 @@ export default class MainProcess {
         `${__dirname}/worker`,
         [],
         {
-          // execArgv: ['--inspect-brk', `--inspect=${magicPort += 1}`],
+          execArgv: workerExecArgv,
           env: {
             ...process.env,
             WRECK_CHILD_NO: String(i),

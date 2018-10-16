@@ -3,47 +3,41 @@ import fetch, { Response, FetchError } from 'node-fetch';
 import * as Debug from 'debug';
 import * as cheerio from 'cheerio';
 import * as url from 'url';
-import { DoneMessage, ReadyMessage, WorkMessage, WorkPayload } from '../helpers/Message';
+import {
+  DoneMessage,
+  ReadyMessage,
+  WorkMessage,
+  WorkPayload,
+  messageFromJSON,
+} from '../helpers/Message';
 import { fixStringURL } from '../helpers/url';
+import Subprocess from '../helpers/Subprocess';
 
 const CHILD_NO = process.env.WRECK_CHILD_NO;
-const NUM_RETRIES = Number(process.env.WRECK_NUM_RETRIES) || 3;
-
 const debug = Debug(`wreck:worker.${CHILD_NO}`);
+const subprocess = new Subprocess(`worker.${CHILD_NO}`);
 
-if (!process.send) {
-  throw new Error('This module should be spawned as a fork');
-}
-const send = (msg: any) => (process.send ? process.send(msg) : null);
+const NUM_RETRIES = subprocess.readEnvNumber('WRECK_NUM_RETRIES', 3);
 
 // TODO: white list domains
-
 let mainDomain = '';
 
 debug('process started');
 
-process.on('SIGINT', () => {
-  debug('process exiting');
-  // process.exit();
-});
-
 process.on('message', (m) => {
   debug('got message:', m);
-  if (m.type && m.type === 'work') {
+  const message = messageFromJSON(m);
+  if (message instanceof WorkMessage) {
     debug('received work item');
-    debug(m.payload);
-    const workMessage = new WorkMessage(m.payload);
-    const work = workMessage.payload;
-    // TODO: validate payload
-    // TODO: actual crawl
+    debug(message.payload);
+    const work = message.payload;
     if (mainDomain === '') {
       const parsed = url.parse(work.url);
       mainDomain = parsed.hostname || '';
     }
     const method = methodForURL(work.url, mainDomain);
     debug(`crawling ${work.url} with ${method}`);
-    fetchURL(work, method)
-    .then(send);
+    fetchURL(work, method).then(subprocess.send);
   }
 });
 
@@ -74,23 +68,22 @@ async function fetchURL(
       debug(`Retrying ${work.url} after ${timeout}.`);
       return fetchURL(work, method, retries - 1);
     }
-    return (new DoneMessage({
+    return new DoneMessage({
       workerNo,
       url: work.url,
       statusCode: response.status,
       success: response.ok,
       neighbours: parseNeighbours(body, work.url),
-    }));
-
+    });
   } catch (e) {
     debug(`Error fetching ${work.url}: ${e.message}`);
-    return (new DoneMessage({
+    return new DoneMessage({
       workerNo,
       url: work.url,
       statusCode: 0,
       success: false,
       neighbours: [],
-    }));
+    });
   }
 }
 
@@ -100,18 +93,17 @@ function waitFor(timeout: number): Promise<void> {
   });
 }
 
-function getRetryAfterTimeout(response: Response, defaultValue: number): number {
-  if (
-    response.headers
-    && response.headers.has('retry-after')
-  ) {
+function getRetryAfterTimeout(
+  response: Response,
+  defaultValue: number,
+): number {
+  if (response.headers && response.headers.has('retry-after')) {
     const retryAfter: string = response.headers.get('retry-after')!;
     const intTimeout = Number.parseInt(retryAfter, 10);
     if (!Number.isNaN(intTimeout)) {
       return intTimeout * 1000;
     }
     const dateTimeout = Date.parse(retryAfter);
-
   }
 
   return defaultValue;
@@ -120,7 +112,8 @@ function getRetryAfterTimeout(response: Response, defaultValue: number): number 
 function parseNeighbours(body: string, baseURL: string): string[] {
   const $ = cheerio.load(body);
   const $links = $('[src],[href]');
-  const urls = $links.toArray()
+  const urls = $links
+    .toArray()
     .map(l => l.attribs['src'] || l.attribs['href'])
     .map(u => fixStringURL(u, baseURL));
   // TODO: what about images and fonts loaded from css?
@@ -145,4 +138,5 @@ function methodForURL(u: string, referrer: string = '') {
   }
   return 'GET';
 }
-send(new ReadyMessage());
+
+subprocess.send(new ReadyMessage());
