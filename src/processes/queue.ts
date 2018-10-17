@@ -11,7 +11,8 @@ import {
   DoneMessage,
   ReadyMessage,
   messageFromJSON,
-} from '../helpers/Message';
+  ClaimMessage,
+} from '@helpers/Message';
 
 const debug = Debug('wreck:queue');
 const debugTick = Debug('wreck:queue:tick');
@@ -46,7 +47,7 @@ type PendingWorkItem = {
   payload: WorkPayload,
 };
 
-const workQueue: Set<string> = new Set();
+const workQueue: Map<string, WorkPayload> = new Map();
 const workClaims: Map<string, PendingWorkItem> = new Map();
 const pendingClaims: number[] = [];
 const allUrls: Set<string> = new Set();
@@ -62,38 +63,32 @@ process.on('message', (m) => {
   }
   const message = messageFromJSON(m);
 
-  switch (message.type) {
-    case MessageType.WORK: {
-      debug('received work item');
-      debug(JSON.stringify(message.payload));
-      enqueueURL(message.payload.url);
-      break;
-    }
-    case MessageType.CLAIM: {
-      // TODO: handle claim timeout
-      debug('received work claim');
-      debug(message.payload);
-      pendingClaims.push(message.payload.workerNo);
-      break;
-    }
-    case MessageType.DONE: {
-      debug('done with work item');
-      debug(message.payload);
-      finishedUrls += 1;
-      markAsDone(message as DoneMessage, finishedUrls);
-      break;
-    }
-    default: {
-      debug('unknown message type');
-      debug(m);
-    }
+  if (message instanceof WorkMessage) {
+    debug('received work item');
+    debug(JSON.stringify(message.payload));
+    enqueueURL(message.payload);
+  } else if (message instanceof ClaimMessage) {
+    // TODO: handle claim timeout
+    debug('received work claim');
+    debug(message.payload);
+    pendingClaims.push(message.payload.workerNo);
+  } else if (message instanceof DoneMessage) {
+    debug('done with work item');
+    debug(message.payload);
+    finishedUrls += 1;
+    markAsDone(message as DoneMessage, finishedUrls);
+  } else {
+    debug('unknown message type');
+    debug(m);
   }
+
   fulfillPendingClaims();
 });
 
-function enqueueURL(url: string) {
+function enqueueURL(payload: WorkPayload) {
+  const url = payload.url;
   if (!allUrls.has(url)) {
-    workQueue.add(url);
+    workQueue.set(url, payload);
     allUrls.add(url);
     console.log('+ adding url to queue:', url);
   }
@@ -102,7 +97,10 @@ function enqueueURL(url: string) {
 function fulfillPendingClaims() {
   // TODO: rate limiting
   if (workQueue.size > 0 && pendingClaims.length > 0) {
-    const url = workQueue.values().next().value;
+    const workPayload = workQueue.values().next().value;
+    const url = workPayload.url;
+    const referrer = workPayload.referrer;
+    const depth = workPayload.depth;
     debug(`claims: ${pendingClaims}`);
     const claim = pendingClaims.shift();
     workQueue.delete(url);
@@ -117,6 +115,8 @@ function fulfillPendingClaims() {
           reject,
           payload: {
             url,
+            referrer,
+            depth,
             workerNo: claim,
           },
         };
@@ -147,6 +147,7 @@ function markAsDone(message: DoneMessage, finishedUrls: number) {
     '->',
     finishedUrls,
     result.url,
+    result.referrer,
     result.statusCode,
     result.success ? 'OK' : 'ERROR',
   );
@@ -158,9 +159,12 @@ function markAsDone(message: DoneMessage, finishedUrls: number) {
   const neighbours = message.payload.neighbours;
   if (Array.isArray(neighbours)) {
     neighbours.forEach((u) => {
-      // TODO: even if not enqueued, the source url should be
-      // marked as referrer for the neighbours.
-      enqueueURL(u);
+      const payload: WorkPayload = {
+        url: u,
+        referrer: result.url,
+        depth: result.depth + 1,
+      };
+      enqueueURL(payload);
     });
   }
   if (workQueue.size === 0 && workClaims.size === 0) {

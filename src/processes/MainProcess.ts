@@ -1,7 +1,7 @@
 import { fork, ChildProcess } from 'child_process';
 import * as Debug from 'debug';
 import * as os from 'os';
-import { WorkMessage, ClaimMessage, MessageType, DoneMessage } from '../helpers/Message';
+import { WorkMessage, ClaimMessage, MessageType, DoneMessage } from '@helpers/Message';
 
 const debug = Debug('wreck:processes:main');
 
@@ -11,17 +11,9 @@ export interface MainProcessParameters {
   nRetries: number;
   nWorkers: number;
   rateLimit: number;
+  maxDepth: number;
 }
-// const child = fork(path);
-// const crawler = new Crawler(valid).start();
-// console.log('CHLD', child);
-// child.on('message', m => {
-  //   console.log('PARENT got message:', m);
-  //   child.disconnect();
-  // });
-  // setTimeout(() => {
-    //   child.send({ op: 'hello' });
-    // },         100);
+
 export default class MainProcess {
   private queue!: ChildProcess;
   private workers!: ChildProcess[];
@@ -30,17 +22,19 @@ export default class MainProcess {
   private rateLimit: number;
   private nRetries: number;
   private nWorkers: number;
+  private maxDepth: number;
 
   constructor(
     params: Partial<MainProcessParameters>,
   ) {
     this.initialURLs = params.initialURLs || [];
     debug('new Crawler created');
-    debug(this.initialURLs);
+    debug(params);
     this.nWorkers = params.nWorkers || os.cpus().length;
     this.concurrency = params.concurrency || 1;
     this.rateLimit = params.rateLimit || 5;
     this.nRetries = params.nRetries || 3;
+    this.maxDepth = params.maxDepth !== undefined ? params.maxDepth : Infinity;
 
     this.createSubprocesses();
     this.setupListeners();
@@ -86,6 +80,7 @@ export default class MainProcess {
             WRECK_CHILD_NO: String(i),
             WRECK_NUM_RETRIES: String(this.nRetries),
             WRECK_WORKER_CONCURRENCY: String(this.concurrency),
+            WRECK_WORKER_MAX_DEPTH: String(this.maxDepth),
           },
         },
       );
@@ -200,7 +195,7 @@ export default class MainProcess {
 
   private populateQueue() {
     this.initialURLs.forEach((url) => {
-      this.queue.send(new WorkMessage({ url }));
+      this.queue.send(new WorkMessage({ url, referrer: '', depth: 1 }));
     });
   }
 }

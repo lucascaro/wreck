@@ -2,7 +2,7 @@
 import Commando from 'console-commando';
 import * as fs from 'fs';
 import { validateURLs, fixStringURL } from '@helpers/url';
-import MainProcess from '../processes/MainProcess';
+import MainProcess from '@processes/MainProcess';
 import * as Debug from 'debug';
 
 const debug = Debug('wreck:commands:crarwl');
@@ -11,6 +11,7 @@ export default new Commando('crawl')
   .option('-u --url <URL>', 'Crawl starting from this URL')
   .option('-r --retries <number>', 'Maximum retries for a URL', 3)
   .option('-w --workers <nWorkers>', 'Start this many workers. Defaults to one per CPU.')
+  .option('-d --max-depth <number>', 'Maximum link depth to crawl.')
   .option('-r --rate-limit <number>', 'Number of requests that will be made per second.')
   .option(
     '-c --concurrency <concurrency>',
@@ -49,10 +50,13 @@ export default new Commando('crawl')
     const nWorkers = command.getOption('workers');
     const concurrency = command.getOption('concurrency');
     const rateLimit = command.getOption('rate-limit');
+    const maxDepth = command.getOption('max-depth');
+    debug({ maxDepth });
     const p = new MainProcess({
       rateLimit,
       concurrency,
       nWorkers,
+      maxDepth,
       initialURLs: valid,
     });
   });

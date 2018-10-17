@@ -10,7 +10,6 @@
     "clean": "rm -rf lib/*",
     "lint": "tslint --project tsconfig.json -c tslint.json src/**/*.ts",
     "build": "npm run clean && tsc -p . && ef-tspm",
-    "_watch": "tsc -p . --watch & nodemon -e js --exec 'ef-tspm || true'",
     "watch": "nodemon -e ts --exec 'tsc -p . && ef-tspm || true'",
     "prepublishOnly": "npm run build",
     "release": "npm version patch && npm publish",

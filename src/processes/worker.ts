@@ -9,21 +9,26 @@ import {
   WorkMessage,
   WorkPayload,
   messageFromJSON,
-} from '../helpers/Message';
-import { fixStringURL } from '../helpers/url';
-import Subprocess from '../helpers/Subprocess';
+} from '@helpers/Message';
+import { fixStringURL } from '@helpers/url';
+import Subprocess from '@helpers/Subprocess';
 
 const CHILD_NO = process.env.WRECK_CHILD_NO;
 const debug = Debug(`wreck:worker.${CHILD_NO}`);
 const subprocess = new Subprocess(`worker.${CHILD_NO}`);
 
 const NUM_RETRIES = subprocess.readEnvNumber('WRECK_NUM_RETRIES', 3);
+const MAX_CRAWL_DEPTH = subprocess.readEnvNumber('WRECK_WORKER_MAX_DEPTH', Infinity);
 
 // TODO: white list domains
 let mainDomain = '';
 
 debug('process started');
-
+debug({
+  CHILD_NO,
+  NUM_RETRIES,
+  MAX_CRAWL_DEPTH,
+});
 process.on('message', (m) => {
   debug('got message:', m);
   const message = messageFromJSON(m);
@@ -35,7 +40,7 @@ process.on('message', (m) => {
       const parsed = url.parse(work.url);
       mainDomain = parsed.hostname || '';
     }
-    const method = methodForURL(work.url, mainDomain);
+    const method = methodForURL(work, mainDomain);
     debug(`crawling ${work.url} with ${method}`);
     fetchURL(work, method).then(subprocess.send);
   }
@@ -71,6 +76,8 @@ async function fetchURL(
     return new DoneMessage({
       workerNo,
       url: work.url,
+      referrer: work.referrer,
+      depth: work.depth,
       statusCode: response.status,
       success: response.ok,
       neighbours: parseNeighbours(body, work.url),
@@ -80,6 +87,8 @@ async function fetchURL(
     return new DoneMessage({
       workerNo,
       url: work.url,
+      referrer: work.referrer,
+      depth: work.depth,
       statusCode: 0,
       success: false,
       neighbours: [],
@@ -122,10 +131,13 @@ function parseNeighbours(body: string, baseURL: string): string[] {
   return urls;
 }
 
-function methodForURL(u: string, referrer: string = '') {
+function methodForURL(work: WorkPayload, referrer: string = '') {
+  if (work.depth > MAX_CRAWL_DEPTH) {
+    return 'HEAD';
+  }
   // TODO: is the re a better way?
   // TODO: what if the server does not allow HEAD?
-  const parsed = url.parse(u);
+  const parsed = url.parse(work.url);
   const re = /\.(jpg|jpeg|svg|js|css|png|webp|)$/i;
   if (parsed.path && re.test(parsed.path)) {
     debug(`method = HEAD for ${parsed.path}`);

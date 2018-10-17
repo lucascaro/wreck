@@ -32,6 +32,8 @@ export class ReadyMessage implements Message, PrintableMessage {
 
 export interface WorkPayload {
   url: string;
+  referrer: string;
+  depth: number;
   workerNo?: number;
 }
 export class WorkMessage implements Message, PrintableMessage {
@@ -41,6 +43,8 @@ export class WorkMessage implements Message, PrintableMessage {
 
 export interface ResultPayload {
   url: string;
+  referrer: string;
+  depth: number;
   workerNo: number;
   statusCode: number;
   success: boolean;
