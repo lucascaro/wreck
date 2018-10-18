@@ -3,6 +3,8 @@ import * as Debug from 'debug';
 import * as os from 'os';
 import { WorkMessage, ClaimMessage, MessageType, DoneMessage } from '@helpers/Message';
 import { PersistentState } from '../helpers/PersistentState';
+import { waitFor } from '../helpers/promise';
+import { promisify } from 'util';
 
 const debug = Debug('wreck:processes:main');
 
@@ -139,16 +141,15 @@ export default class MainProcess {
         'exit',
         'SIGUSR1',
         'SIGTERM',
-        'SIGINT',
         'SIGPIPE',
         'SIGHUP',
         'SIGTERM',
-        'SIGINT',
+        // 'SIGINT',
         'SIGBREAK',
       ];
       signals.forEach((s) => {
         process.on(s as NodeJS.Signals, () => {
-          console.error(
+          debug(
             `RECEIVED ${s}.`,
           );
         });

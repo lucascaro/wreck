@@ -10,8 +10,15 @@
       "@root/*": ["./*"],
       "@src/*": ["src/*"],
       "@helpers/*": ["src/helpers/*"],
-      "@processes/*": ["src/processes/*"]
-    }
+      "@processes/*": ["src/processes/*"],
+      "@plugins/*": ["src/plugins/*"]
+    },
+    "plugins": [
+      {
+        "transform": "./src/plugins/ts_transform_remove_debug.ts",
+        "remove": ["debug", "this.debug"]
+      },
+    ]
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "**/node_modules/*"]

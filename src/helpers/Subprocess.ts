@@ -1,22 +1,18 @@
-import { Message, messageFromJSON } from './Message';
+import { Message, messageFromJSON, MessageType } from './Message';
 import * as Debug from 'debug';
 
 export type MessageHandler = (m: Message) => void;
 
 export default class Subprocess {
   private debug: Debug.IDebugger;
-  private messageHandlers: Map<string, Set<MessageHandler>> = new Map();
+  private messageHandlers: Map<MessageType, Set<MessageHandler>> = new Map();
 
   constructor(readonly kind: string) {
     if (!process.send) {
       throw new Error('This module should be spawned as a fork');
     }
     this.debug = Debug(`wreck:${kind}:subprocess`);
-    process.on('SIGINT', () => {
-      this.debug('exiting sub process');
-      // process.exit();
-    });
-
+    this.setupSignalHandlers();
     this.setupMessageHandler();
   }
 
@@ -25,7 +21,7 @@ export default class Subprocess {
     process.send!(msg);
   }
 
-  addMessageListener(type: string, handler: MessageHandler) {
+  addMessageListener(type: MessageType, handler: MessageHandler) {
     const handlers = this.messageHandlers.get(type) || new Set();
     handlers.add(handler);
     this.messageHandlers.set(type, handlers);
@@ -57,6 +53,21 @@ export default class Subprocess {
         this.debug('no handlers registered for message');
       }
       handlers.forEach(handler => handler(message));
+    });
+  }
+
+  private setupSignalHandlers() {
+    process.on('SIGINT', () => {
+      this.debug('exiting sub process');
+      // process.exit();
+      setTimeout(() => {
+        this.debug('never');
+      },         2000);
+    });
+
+    process.on('disconnect', () => {
+      this.debug('Process disconnected. Exiting.');
+      process.exit();
     });
   }
 }
