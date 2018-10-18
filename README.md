@@ -4,7 +4,7 @@ WRECK is a fast, reliable, flexible web crawling kit.
 
 ## Project Status
 
-This project is in the [design](./DESIGN.md) phase.
+This project is in the [design](./DESIGN.md) and prototype phase.
 
 ## Roadmap
 
