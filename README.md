@@ -11,15 +11,21 @@ This project is in the [design](./DESIGN.md) phase.
 - [x] Initial design and request for feedback
 - [x] First prototype for testing
   - [x] Multi process crawling
+  - [x] Configurable per-process concurrency
   - [x] HTTP and HTTPS support
   - [x] HTTP retries
   - [x] HEAD and GET requests
   - [x] Shared work queue
   - [x] Request rate limiting
   - [x] Crawl depth
-- [ ] URL normalization
-- [ ] Maximum request limit
-- [ ] Include / exclude patterns
+  - [x] Limit to original domain
+  - [x] URL normalization
+  - [x] Exclude patterns
+  - [x] Persistent state across runs
+  - [ ] Maximum request limit
+  - [ ] Include patterns
+- [ ] Domain whitelist
+- [ ] Reporting
 - [ ] Unit testing
 - [ ] Functional testing
 - [ ] Incorporate design feedback
