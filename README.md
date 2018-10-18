@@ -22,7 +22,8 @@ This project is in the [design](./DESIGN.md) and prototype phase.
   - [x] URL normalization
   - [x] Exclude patterns
   - [x] Persistent state across runs
-  - [ ] Maximum request limit
+  - [x] Maximum request limit
+  - [ ] Nofollow patters
   - [ ] Include patterns
 - [ ] Domain whitelist
 - [ ] Reporting

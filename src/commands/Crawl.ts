@@ -10,6 +10,12 @@ const debug = Debug('wreck:commands:crarwl');
 export default new Commando('crawl')
   .option('-u --url <URL>', 'Crawl starting from this URL')
   .option('-R --retries <number>', 'Maximum retries for a URL', 3)
+  .option('-t --timeout <number>', 'Maximum seconds to wait for requests', 1)
+  .option('-m --max-requests <number>', 'Maximum request for this run.', Infinity)
+  .option(
+    '-n --no-resume',
+    'Force the command to restart crawling from scratch, even if there is saved state.',
+  )
   .option(
     '-w --workers <nWorkers>',
     'Start this many workers. Defaults to one per CPU.',
@@ -28,10 +34,6 @@ export default new Commando('crawl')
     '-c --concurrency <concurrency>',
     'How many requests can be active at the same time.',
     10,
-  )
-  .option(
-    '-n --no-resume',
-    'Force the command to restart crawling from scratch, even if there is saved state.',
   )
   // .argument('<URL>', 'Crawl starting from this URL')
 
@@ -66,8 +68,10 @@ export default new Commando('crawl')
     const concurrency = command.getOption('concurrency');
     const rateLimit = command.getOption('rate-limit');
     const maxDepth = command.getOption('max-depth');
-    let exclude = command.getOption('exclude');
     const noResume = command.getOption('no-resume');
+    const timeout = command.getOption('timeout');
+    const maxRequests = command.getOption('max-requests');
+    let exclude = command.getOption('exclude');
     if (typeof exclude === 'string') {
       exclude = [exclude];
     } else {
@@ -82,6 +86,8 @@ export default new Commando('crawl')
       maxDepth,
       exclude,
       noResume,
+      timeout,
+      maxRequests,
       initialURLs: valid,
     });
   });

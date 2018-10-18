@@ -15,8 +15,10 @@ export interface MainProcessParameters {
   nWorkers: number;
   rateLimit: number;
   maxDepth: number;
+  maxRequests: number;
   exclude: string[];
   noResume: boolean;
+  timeout: number;
 }
 
 export default class MainProcess {
@@ -28,8 +30,10 @@ export default class MainProcess {
   private nRetries: number;
   private nWorkers: number;
   private maxDepth: number;
+  private maxRequests: number;
   private exclude: string[];
   private noResume: boolean;
+  private timeout: number;
   // TODO: move to a deferred helper;
   private onQueueReadyHandlers: Set<Function> = new Set();
   private queueIsReady = false;
@@ -41,12 +45,14 @@ export default class MainProcess {
     debug('new Crawler created');
     debug(params);
     this.nWorkers = params.nWorkers || os.cpus().length;
-    this.concurrency = params.concurrency || 1;
-    this.rateLimit = params.rateLimit || 5;
+    this.concurrency = params.concurrency || 10;
+    this.rateLimit = params.rateLimit || Infinity;
     this.nRetries = params.nRetries || 3;
     this.maxDepth = params.maxDepth || Infinity;
+    this.maxRequests = params.maxRequests || Infinity;
     this.exclude = params.exclude || [];
     this.noResume = !!params.noResume;
+    this.timeout = (params.timeout || 1) * 1000;
 
     this.createSubprocesses();
     this.setupListeners();
@@ -81,6 +87,7 @@ export default class MainProcess {
         ...process.env,
         WRECK_RATE_LIMIT_RATE: String(this.rateLimit),
         WRECK_RATE_LIMIT_CONCURRENCY: String(this.concurrency),
+        WRECK_QUEUE_MAX_REQUESTS: String(this.maxRequests),
       },
     });
     this.workers = [...Array(this.nWorkers)].map((_, i) => {
@@ -97,6 +104,7 @@ export default class MainProcess {
             WRECK_WORKER_CONCURRENCY: String(this.concurrency),
             WRECK_WORKER_MAX_DEPTH: String(this.maxDepth),
             WRECK_WORKER_EXCLUDE_URLS: JSON.stringify(this.exclude),
+            WRECK_WORKER_REQUEST_TIMEOUT: JSON.stringify(this.exclude),
           },
         },
       );

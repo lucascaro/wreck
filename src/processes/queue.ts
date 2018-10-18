@@ -10,10 +10,8 @@ import {
   QueueEmptyMessage,
   DoneMessage,
   ReadyMessage,
-  messageFromJSON,
   ClaimMessage,
 } from '@helpers/Message';
-import { createWriteStream, createReadStream } from 'fs';
 import { PersistentState } from '../helpers/PersistentState';
 
 const debug = Debug('wreck:queue');
@@ -21,13 +19,20 @@ const debugTick = Debug('wreck:queue:tick');
 
 const subprocess = new Subprocess('queue');
 
-debug('process started');
 // TODO: if no limit is specified, there should be no rate limit.
-const RATE_LIMIT_RATE = subprocess.readEnvNumber('WRECK_RATE_LIMIT_RATE', 1);
+const RATE_LIMIT_RATE = subprocess.readEnvNumber('WRECK_RATE_LIMIT_RATE', Infinity);
+const MAX_REQUESTS = subprocess.readEnvNumber('WRECK_QUEUE_MAX_REQUESTS', Infinity);
 const RATE_LIMIT_CONCURRENCY = subprocess.readEnvNumber(
   'WRECK_RATE_LIMIT_CONCURRENCY',
-  1,
+  Infinity,
 );
+
+debug('process started');
+debug({
+  RATE_LIMIT_RATE,
+  MAX_REQUESTS,
+  RATE_LIMIT_CONCURRENCY,
+});
 
 setInterval(() => {
   debugTick('---------------------TICK---------------------');
@@ -41,7 +46,10 @@ const rateLimitParameters = {
 };
 
 debugTick('rateLimitParameters:', rateLimitParameters);
-const limit = pRateLimit(rateLimitParameters);
+const shouldLimit = RATE_LIMIT_RATE !== Infinity || RATE_LIMIT_CONCURRENCY !== Infinity;
+const limit = shouldLimit ?
+  pRateLimit(rateLimitParameters) :
+  <T>(f: (() => Promise<T>)) => f();
 
 type PendingWorkItem = {
   url: string,
@@ -61,6 +69,8 @@ PersistentState.readState(allUrls, workQueue)
 
 function startQueue() {
   let finishedUrls = allUrls.size - workQueue.size;
+  let fulfilledClaims = 0;
+
   debug(
     `read ${allUrls.size} total and ${workQueue.size} pending URLs -- ${finishedUrls} are done`,
   );
@@ -87,6 +97,10 @@ function startQueue() {
   function enqueueURL(payload: WorkPayload) {
     const url = payload.url;
     if (!allUrls.has(url)) {
+      if (fulfilledClaims >= MAX_REQUESTS) {
+        debug('Maximum requests reached. Rejecting new work.');
+        return;
+      }
       workQueue.set(url, payload);
       allUrls.add(url);
       console.log('+ adding url to queue:', url);
@@ -108,6 +122,10 @@ function startQueue() {
       limit(() => {
         return new Promise<void>((resolve, reject)  => {
           debugTick(`in promise: ${url}`);
+          if (fulfilledClaims >= MAX_REQUESTS) {
+            reject();
+            return;
+          }
           const pendingWorkItem: PendingWorkItem = {
             url,
             resolve,
@@ -123,6 +141,11 @@ function startQueue() {
           workClaims.set(url, pendingWorkItem);
           // TODO: concurrency requires handling WORK and DONE in a promise.
           subprocess.send(new WorkMessage(pendingWorkItem.payload));
+          fulfilledClaims += 1;
+          if (fulfilledClaims >= MAX_REQUESTS) {
+            debug('maximum requests reached, emptying work queue.');
+            workQueue.clear();
+          }
           debug(`queue size: ${workQueue.size}`);
           debug(`pending claims: ${pendingClaims.length}`);
           debug(`active claims: ${workClaims.size}`);
@@ -157,7 +180,7 @@ function startQueue() {
     }
     workClaims.delete(message.payload.url);
     const neighbours = message.payload.neighbours;
-    if (Array.isArray(neighbours)) {
+    if (fulfilledClaims < MAX_REQUESTS && Array.isArray(neighbours)) {
       neighbours.forEach((u) => {
         const payload: WorkPayload = {
           url: u,

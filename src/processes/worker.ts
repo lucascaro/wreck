@@ -21,6 +21,7 @@ const subprocess = new Subprocess(`worker.${CHILD_NO}`);
 
 const NUM_RETRIES = subprocess.readEnvNumber('WRECK_NUM_RETRIES', 3);
 const MAX_CRAWL_DEPTH = subprocess.readEnvNumber('WRECK_WORKER_MAX_DEPTH', Infinity);
+const REQUEST_TIMEOUT = subprocess.readEnvNumber('WRECK_WORKER_REQUEST_TIMEOUT', 5000);
 const EXCLUDE_URLS = subprocess
   .readEnvArray<string>('WRECK_WORKER_EXCLUDE_URLS', [])
   .map(pattern => new RegExp(pattern));
@@ -31,6 +32,7 @@ debug({
   NUM_RETRIES,
   MAX_CRAWL_DEPTH,
   EXCLUDE_URLS,
+  REQUEST_TIMEOUT,
 });
 
 subprocess.addMessageListener(MessageType.WORK, (message: WorkMessage) => {
@@ -51,6 +53,7 @@ async function fetchURL(
   try {
     const response = await fetch(work.url, {
       method,
+      timeout: REQUEST_TIMEOUT,
     });
 
     debug(`got response for ${work.url}: ${response.status}`);
