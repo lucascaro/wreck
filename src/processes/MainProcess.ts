@@ -2,6 +2,7 @@ import { fork, ChildProcess } from 'child_process';
 import * as Debug from 'debug';
 import * as os from 'os';
 import { WorkMessage, ClaimMessage, MessageType, DoneMessage } from '@helpers/Message';
+import { PersistentState } from '../helpers/PersistentState';
 
 const debug = Debug('wreck:processes:main');
 
@@ -12,6 +13,8 @@ export interface MainProcessParameters {
   nWorkers: number;
   rateLimit: number;
   maxDepth: number;
+  exclude: string[];
+  noResume: boolean;
 }
 
 export default class MainProcess {
@@ -23,6 +26,11 @@ export default class MainProcess {
   private nRetries: number;
   private nWorkers: number;
   private maxDepth: number;
+  private exclude: string[];
+  private noResume: boolean;
+  // TODO: move to a deferred helper;
+  private onQueueReadyHandlers: Set<Function> = new Set();
+  private queueIsReady = false;
 
   constructor(
     params: Partial<MainProcessParameters>,
@@ -34,11 +42,16 @@ export default class MainProcess {
     this.concurrency = params.concurrency || 1;
     this.rateLimit = params.rateLimit || 5;
     this.nRetries = params.nRetries || 3;
-    this.maxDepth = params.maxDepth !== undefined ? params.maxDepth : Infinity;
+    this.maxDepth = params.maxDepth || Infinity;
+    this.exclude = params.exclude || [];
+    this.noResume = !!params.noResume;
 
     this.createSubprocesses();
     this.setupListeners();
     this.setupSignalHandlers();
+    if (this.noResume) {
+      PersistentState.resetState();
+    }
   }
 
   start() {
@@ -81,6 +94,7 @@ export default class MainProcess {
             WRECK_NUM_RETRIES: String(this.nRetries),
             WRECK_WORKER_CONCURRENCY: String(this.concurrency),
             WRECK_WORKER_MAX_DEPTH: String(this.maxDepth),
+            WRECK_WORKER_EXCLUDE_URLS: JSON.stringify(this.exclude),
           },
         },
       );
@@ -151,6 +165,11 @@ export default class MainProcess {
     switch (message.type) {
       case MessageType.READY:
         this.populateQueue();
+        // TODO: Move to helper
+        this.queueIsReady = true;
+        this.onQueueReadyHandlers.forEach((handler) => {
+          handler();
+        });
         break;
       case MessageType.WORK:
         debug('got work from queue', message.payload);
@@ -178,8 +197,15 @@ export default class MainProcess {
     }
     switch (message.type) {
       case MessageType.READY:
-        [...Array(this.concurrency)].forEach((_) => {
-          this.queue.send(new ClaimMessage({ workerNo }));
+        // This is the event that triggers crawling but we don't know
+        // whether the queue is ready at this point.
+        // onQueueReady will call the function when the queue is ready,
+        // which could be immediately if the queue has finished before
+        // this particular worker.
+        this.onQueueReady(() => {
+          [...Array(this.concurrency)].forEach((_) => {
+            this.queue.send(new ClaimMessage({ workerNo }));
+          });
         });
         break;
 
@@ -198,4 +224,13 @@ export default class MainProcess {
       this.queue.send(new WorkMessage({ url, referrer: '', depth: 1 }));
     });
   }
+
+  private onQueueReady(callback: Function) {
+    if (this.queueIsReady) {
+      callback();
+      return;
+    }
+    this.onQueueReadyHandlers.add(callback);
+  }
+
 }

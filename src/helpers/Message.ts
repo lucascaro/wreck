@@ -1,10 +1,10 @@
 
-export default interface Message {
-  type: string;
-  payload?: any;
-}
+// export default interface Message {
+//   type: string;
+//   payload?: any;
+// }
 
-export enum MessageType {
+export const enum MessageType {
   READY = 'ready',
   WORK = 'work',
   DONE = 'done',
@@ -14,20 +14,28 @@ export enum MessageType {
   QUEUE_EMPTY = 'queue_empty',
 }
 
-export class PrintableMessage implements Message{
-  type: string = '';
-  payload?: any;
+export type Message =
+  GenericMessage |
+  ReadyMessage |
+  WorkMessage |
+  DoneMessage |
+  ClaimMessage |
+  ReleaseMessage |
+  DequeueMessage |
+  QueueEmptyMessage
+;
+
+export class GenericMessage {
+  constructor(public type: string, public payload?: any) {}
   toString() {
     return `type: ${this.type}, payload: ${this.payload}`;
   }
 }
 
-export class GenericMessage implements Message, PrintableMessage {
-  constructor(public type: string, public payload: any) {}
-}
-
-export class ReadyMessage implements Message, PrintableMessage {
-  type = MessageType.READY;
+export class ReadyMessage extends GenericMessage {
+  constructor() {
+    super(MessageType.READY);
+  }
 }
 
 export interface WorkPayload {
@@ -36,9 +44,10 @@ export interface WorkPayload {
   depth: number;
   workerNo?: number;
 }
-export class WorkMessage implements Message, PrintableMessage {
-  type = MessageType.WORK;
-  constructor(public payload: WorkPayload) {}
+export class WorkMessage extends GenericMessage {
+  constructor(payload: WorkPayload) {
+    super(MessageType.WORK, payload);
+  }
 }
 
 export interface ResultPayload {
@@ -51,31 +60,37 @@ export interface ResultPayload {
   neighbours: string[];
 }
 
-export class DoneMessage implements Message {
-  type = MessageType.DONE;
-  // TODO: the payload for this should be crawl results
-  constructor(public payload: ResultPayload) {}
+export class DoneMessage extends GenericMessage {
+  constructor(payload: ResultPayload) {
+    super(MessageType.DONE, payload);
+  }
 }
 
 export interface ClaimPayload {
   workerNo: number;
 }
-export class ClaimMessage implements Message {
-  type = MessageType.CLAIM;
-  constructor(public payload: ClaimPayload) {}
+export class ClaimMessage extends GenericMessage {
+  constructor(payload: ClaimPayload) {
+    super(MessageType.CLAIM, payload);
+  }
 }
-export class ReleaseMessage implements Message {
-  type = MessageType.RELEASE;
-  constructor(public payload: WorkPayload) {}
-}
-
-export class DequeueMessage implements Message {
-  type = MessageType.DEQUEUE;
-  constructor(public payload: string) {}
+export class ReleaseMessage extends GenericMessage {
+  constructor(payload: WorkPayload) {
+    super(MessageType.RELEASE, payload);
+  }
 }
 
-export class QueueEmptyMessage implements Message {
-  type = MessageType.QUEUE_EMPTY;
+export class DequeueMessage extends GenericMessage {
+  constructor(payload: string) {
+    super(MessageType.DEQUEUE, payload);
+  }
+}
+
+export class QueueEmptyMessage extends GenericMessage {
+  constructor() {
+    super(MessageType.QUEUE_EMPTY);
+
+  }
 }
 
 export function messageFromJSON(obj: Partial<Message>): Message {

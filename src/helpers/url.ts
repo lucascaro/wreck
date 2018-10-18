@@ -33,6 +33,11 @@ export function fixStringURL(u: string, referrer: string = ''): string {
   return fixed;
 }
 
+export function normalizeURL(u: string, referrer: string = ''): string {
+  return fixStringURL(u, referrer)
+    .replace(/#.*/, '');
+    // TODO: optionally dropping query strings?
+}
 export function fixParsedURL(
   u: url.UrlWithStringQuery,
   host?: string,

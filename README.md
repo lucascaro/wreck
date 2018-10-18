@@ -16,6 +16,10 @@ This project is in the [design](./DESIGN.md) phase.
   - [x] HEAD and GET requests
   - [x] Shared work queue
   - [x] Request rate limiting
+  - [x] Crawl depth
+- [ ] URL normalization
+- [ ] Maximum request limit
+- [ ] Include / exclude patterns
 - [ ] Unit testing
 - [ ] Functional testing
 - [ ] Incorporate design feedback

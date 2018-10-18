@@ -1,5 +1,5 @@
 // tslint:disable-next-line:import-name
-import fetch, { Response, FetchError } from 'node-fetch';
+import fetch, { Response } from 'node-fetch';
 import * as Debug from 'debug';
 import * as cheerio from 'cheerio';
 import * as url from 'url';
@@ -9,9 +9,11 @@ import {
   WorkMessage,
   WorkPayload,
   messageFromJSON,
+  MessageType,
 } from '@helpers/Message';
-import { fixStringURL } from '@helpers/url';
+import { normalizeURL } from '@helpers/url';
 import Subprocess from '@helpers/Subprocess';
+import { waitFor } from '../helpers/promise';
 
 const CHILD_NO = process.env.WRECK_CHILD_NO;
 const debug = Debug(`wreck:worker.${CHILD_NO}`);
@@ -19,31 +21,24 @@ const subprocess = new Subprocess(`worker.${CHILD_NO}`);
 
 const NUM_RETRIES = subprocess.readEnvNumber('WRECK_NUM_RETRIES', 3);
 const MAX_CRAWL_DEPTH = subprocess.readEnvNumber('WRECK_WORKER_MAX_DEPTH', Infinity);
-
-// TODO: white list domains
-let mainDomain = '';
+const EXCLUDE_URLS = subprocess
+  .readEnvArray<string>('WRECK_WORKER_EXCLUDE_URLS', [])
+  .map(pattern => new RegExp(pattern));
 
 debug('process started');
 debug({
   CHILD_NO,
   NUM_RETRIES,
   MAX_CRAWL_DEPTH,
+  EXCLUDE_URLS,
 });
-process.on('message', (m) => {
-  debug('got message:', m);
-  const message = messageFromJSON(m);
-  if (message instanceof WorkMessage) {
-    debug('received work item');
-    debug(message.payload);
-    const work = message.payload;
-    if (mainDomain === '') {
-      const parsed = url.parse(work.url);
-      mainDomain = parsed.hostname || '';
-    }
-    const method = methodForURL(work, mainDomain);
-    debug(`crawling ${work.url} with ${method}`);
-    fetchURL(work, method).then(subprocess.send);
-  }
+
+subprocess.addMessageListener(MessageType.WORK, (message: WorkMessage) => {
+  debug('received work item');
+  const work = message.payload;
+  const method = methodForURL(work);
+  debug(`crawling ${work.url} with ${method}`);
+  fetchURL(work, method).then(subprocess.send);
 });
 
 async function fetchURL(
@@ -60,7 +55,8 @@ async function fetchURL(
 
     debug(`got response for ${work.url}: ${response.status}`);
     debug(response);
-    const body = await response.text();
+
+    const body = method === 'GET' ? await response.text() : '';
 
     if (response.status === 429) {
       debug('429 response received, slowing down.');
@@ -96,12 +92,6 @@ async function fetchURL(
   }
 }
 
-function waitFor(timeout: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, timeout);
-  });
-}
-
 function getRetryAfterTimeout(
   response: Response,
   defaultValue: number,
@@ -119,22 +109,31 @@ function getRetryAfterTimeout(
 }
 
 function parseNeighbours(body: string, baseURL: string): string[] {
+  if (body === '') {
+    return [];
+  }
   const $ = cheerio.load(body);
   const $links = $('[src],[href]');
   const urls = $links
     .toArray()
     .map(l => l.attribs['src'] || l.attribs['href'])
-    .map(u => fixStringURL(u, baseURL));
+    .map(u => normalizeURL(u, baseURL));
   // TODO: what about images and fonts loaded from css?
   // TODO: does not understand images added via js.
   // TODO: phantomjs / jsdom plugins that can do this?
   return urls;
 }
 
-function methodForURL(work: WorkPayload, referrer: string = '') {
+function methodForURL(work: WorkPayload) {
   if (work.depth > MAX_CRAWL_DEPTH) {
     return 'HEAD';
   }
+
+  if (EXCLUDE_URLS.some(p => p.test(work.url))) {
+    debug(`excluding url ${work.url}`);
+    return 'HEAD';
+  }
+
   // TODO: is the re a better way?
   // TODO: what if the server does not allow HEAD?
   const parsed = url.parse(work.url);
@@ -143,8 +142,13 @@ function methodForURL(work: WorkPayload, referrer: string = '') {
     debug(`method = HEAD for ${parsed.path}`);
     return 'HEAD';
   }
-  // const parsedBase = url.parse(referrer);
-  if (referrer !== '' && parsed.hostname !== referrer) {
+
+  // TODO: this should use a domain whitelist instead of
+  // limiting to a single domain.
+  const referrer = url.parse(work.referrer);
+  const referrerHost = referrer.hostname || '';
+
+  if (referrerHost !== '' && parsed.hostname !== referrerHost) {
     debug(`method = HEAD for ${parsed.hostname} from ${referrer}`);
     return 'HEAD';
   }
