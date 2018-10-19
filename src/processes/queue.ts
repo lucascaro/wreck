@@ -12,7 +12,8 @@ import {
   ReadyMessage,
   ClaimMessage,
 } from '@helpers/Message';
-import { PersistentState } from '../helpers/PersistentState';
+import { PersistentState } from '@helpers/PersistentState';
+import output from '@helpers/output';
 
 const debug = Debug('wreck:queue');
 const debugTick = Debug('wreck:queue:tick');
@@ -103,7 +104,7 @@ function startQueue() {
       }
       workQueue.set(url, payload);
       allUrls.add(url);
-      console.log('+ adding url to queue:', url);
+      output.verbose('+ adding url to queue:', url);
     }
   }
 
@@ -165,7 +166,7 @@ function startQueue() {
     const result = message.payload;
 
     // TODO: move to reporter
-    console.log(
+    output.normal(
       '->',
       finishedUrls,
       result.url,

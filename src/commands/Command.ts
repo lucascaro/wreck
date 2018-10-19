@@ -16,7 +16,7 @@ export default new Commando('wreck')
     if (command.getOption('verbose')) {
       output.setLevel(OutputLevel.VERBOSE);
     }
-    if (command.getOption('quiet')) {
+    if (command.getOption('silent')) {
       output.setLevel(OutputLevel.SILENT);
     }
   });

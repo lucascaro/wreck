@@ -3,8 +3,7 @@ import * as Debug from 'debug';
 import * as os from 'os';
 import { WorkMessage, ClaimMessage, MessageType, DoneMessage } from '@helpers/Message';
 import { PersistentState } from '../helpers/PersistentState';
-import { waitFor } from '../helpers/promise';
-import { promisify } from 'util';
+import output from '@helpers/output';
 
 const debug = Debug('wreck:processes:main');
 
@@ -138,7 +137,7 @@ export default class MainProcess {
         '\nSIGINT detected, attemtping to exit gracefully. Press Ctrl-C again to force quit.',
       );
       this.close().then(() => {
-        console.log('closed');
+        output.normal('closed');
       });
     });
 
@@ -187,7 +186,7 @@ export default class MainProcess {
         this.workers[workerNo].send(new WorkMessage(message.payload));
         break;
       case MessageType.QUEUE_EMPTY:
-        console.log('All urls processed. Exiting.');
+        output.normal('All urls processed. Exiting.');
         this.close().then(() => {
           process.exit(0);
         });
