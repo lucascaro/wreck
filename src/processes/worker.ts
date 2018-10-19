@@ -1,10 +1,6 @@
 import { DoneMessage, MessageType, ReadyMessage, WorkMessage, WorkPayload } from '@helpers/Message';
 import Subprocess from '@helpers/Subprocess';
-import { getNormalizedURL, isValidNormalizedURL } from '@helpers/url';
-import * as cheerio from 'cheerio';
 import * as Debug from 'debug';
-import * as url from 'url';
-import { waitFor } from '../helpers/promise';
 import RequestHelper from '@root/src/helpers/RequestHelper';
 
 const CHILD_NO = process.env.WRECK_CHILD_NO;
@@ -27,7 +23,6 @@ debug({
   REQUEST_TIMEOUT,
 });
 const request = RequestHelper({
-  NUM_RETRIES,
   MAX_CRAWL_DEPTH,
   EXCLUDE_URLS,
   REQUEST_TIMEOUT,
@@ -40,7 +35,8 @@ subprocess.addMessageListener(MessageType.WORK, (message: WorkMessage) => {
   const work = message.payload;
   const method = request.methodForURL(work);
   debug(`crawling ${work.url} with ${method}`);
-  request.fetchURL(work, method).then(subprocess.send);
+  request.fetchURL(work, method, NUM_RETRIES)
+    .then(subprocess.send);
 });
 
 subprocess.send(new ReadyMessage());

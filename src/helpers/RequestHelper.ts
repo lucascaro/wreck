@@ -2,12 +2,12 @@ import { DoneMessage, WorkPayload } from '@helpers/Message';
 import { getNormalizedURL, isValidNormalizedURL } from '@helpers/url';
 // tslint:disable-next-line:import-name
 import fetch, { Response } from 'node-fetch';
+import * as cheerio from 'cheerio';
 import * as url from 'url';
 import { waitFor } from './promise';
 
 type RequestHelperParams = {
   debug: Function,
-  NUM_RETRIES: number,
   CHILD_NO: number,
   REQUEST_TIMEOUT: number,
   MAX_CRAWL_DEPTH: number,
@@ -16,7 +16,6 @@ type RequestHelperParams = {
 
 export default function requestHelper({
   debug,
-  NUM_RETRIES,
   CHILD_NO,
   REQUEST_TIMEOUT,
   MAX_CRAWL_DEPTH,
@@ -26,7 +25,7 @@ export default function requestHelper({
   async function fetchURL(
     work: WorkPayload,
     method: string = 'GET',
-    retries: number = NUM_RETRIES,
+    retries: number,
   ): Promise<DoneMessage > {
     // TODO: safer error handling for worker number
     const { workerNo = CHILD_NO } = work;
@@ -56,7 +55,7 @@ export default function requestHelper({
     response: Response,
     work: WorkPayload,
     method: string = 'GET',
-    retries: number = NUM_RETRIES,
+    retries: number,
   ): Promise<DoneMessage > {
 
     const { workerNo = CHILD_NO } = work;
