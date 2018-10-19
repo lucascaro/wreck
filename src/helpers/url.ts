@@ -5,69 +5,65 @@ const debug = Debug('wreck:helpers:url');
 
 export const VALID_PROTOCOLS = ['http:', 'https:'];
 
-export function isValidURL(str: string): boolean {
+/**
+ * Returns a normalized URL or null if the input is invalid.
+ *
+ * @param str the string to validate and convert to a URL
+ * @param base the base url in case of relative paths.
+ */
+export function getNormalizedURL(str: string, base?: string): URL | null {
   try {
-    const parsed = url.parse(str);
-    const fixed = fixParsedURL(parsed);
-    const hasHost = fixed.host !== undefined;
-    const validProto =
-      !fixed.protocol || VALID_PROTOCOLS.includes(fixed.protocol);
-    return hasHost && validProto;
-  } catch {
+    // Default to https if no base url is provided
+    const adjusted = (base || str.includes('://')) ? str : `https://${str}`;
+    debug(`adjusted URL: ${adjusted}`);
+    const theURL = new URL(adjusted, base);
+    // Remove fragment
+    theURL.hash = '';
+    debug(`normalized URL: ${theURL} from ${str}`);
+    return theURL;
+  } catch (e) {
+    debug(`error normaliing URL ${str}: ${e}`);
+    return null;
+  }
+}
+
+/**
+ * Validates a given URL according to the crawler requrements.
+ * @param u A URL to validate.
+ */
+export function isValidNormalizedURL(u?: URL | null): boolean {
+  if (!u) {
     return false;
   }
-  // A valid url should at least have a host.
+
+  return u.hostname !== '' && VALID_PROTOCOLS.includes(u.protocol);
 }
 
-export function fixStringURL(u: string, referrer: string = ''): string {
-  let fixed = u.replace(/^\/\//, 'https://');
-  fixed = url.resolve(referrer, fixed);
-  if (!fixed.startsWith('http')) {
-    fixed = `https://${fixed}`;
-  }
-  debug(`fix ${u} as ${fixed}`);
-  // const { host } = referrer ? url.parse(referrer) : { host: undefined };
-  // const parsed = fixParsedURL(url.parse(fixed), host);
-  // debug(`parsed: ${JSON.stringify(parsed)}`);
-  // return url.format(parsed);
-  return fixed;
-}
-
-export function normalizeURL(u: string, referrer: string = ''): string {
-  return fixStringURL(u, referrer)
-    .replace(/#.*/, '');
-    // TODO: optionally dropping query strings?
-}
-export function fixParsedURL(
-  u: url.UrlWithStringQuery,
-  host?: string,
-): url.UrlWithStringQuery {
-  return {
-    ...u,
-    host: u.host || host,
-    protocol: u.protocol || 'https:',
-  };
-}
+export type ValidationResults = {
+  valid: URL[];
+  invalid: string [];
+};
 
 export function validateURLs(
   urlList: string[],
-): { valid: string[]; invalid: string[] } {
-  const lines = urlList;
-  const { valid, invalid } = lines.reduce(
+): ValidationResults {
+  // Using reduce to avoid looping twice. Might be better to
+  // prefer clarity and have two filter calls instead...
+  const { valid, invalid } = urlList.reduce(
     (p, c) => {
-      if (isValidURL(c)) {
-        return { ...p, valid: [...p.valid, c] };
+      const normalized = getNormalizedURL(c);
+      if (normalized && isValidNormalizedURL(normalized)) {
+        return { ...p, valid: [...p.valid, normalized] };
       }
       return { ...p, invalid: [...p.invalid, c] };
     },
-    { valid: [] as string[], invalid: [] as string[] },
+    { valid: [], invalid: [] } as ValidationResults,
   );
   return { valid, invalid };
 }
 
 export default {
-  isValidURL,
-  fixParsedURL,
-  fixStringURL,
   validateURLs,
+  getNormalizedURL,
+  isValidNormalizedURL,
 };

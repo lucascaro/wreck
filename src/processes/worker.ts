@@ -1,18 +1,11 @@
+import { DoneMessage, MessageType, ReadyMessage, WorkMessage, WorkPayload } from '@helpers/Message';
+import Subprocess from '@helpers/Subprocess';
+import { getNormalizedURL, isValidNormalizedURL } from '@helpers/url';
+import * as cheerio from 'cheerio';
+import * as Debug from 'debug';
 // tslint:disable-next-line:import-name
 import fetch, { Response } from 'node-fetch';
-import * as Debug from 'debug';
-import * as cheerio from 'cheerio';
 import * as url from 'url';
-import {
-  DoneMessage,
-  ReadyMessage,
-  WorkMessage,
-  WorkPayload,
-  messageFromJSON,
-  MessageType,
-} from '@helpers/Message';
-import { normalizeURL } from '@helpers/url';
-import Subprocess from '@helpers/Subprocess';
 import { waitFor } from '../helpers/promise';
 
 const CHILD_NO = process.env.WRECK_CHILD_NO;
@@ -106,6 +99,12 @@ function getRetryAfterTimeout(
       return intTimeout * 1000;
     }
     const dateTimeout = Date.parse(retryAfter);
+    if (!Number.isNaN(dateTimeout)) {
+      const dateDiff = dateTimeout - Date.now();
+      if (dateDiff > 0) {
+        return dateDiff;
+      }
+    }
   }
 
   return defaultValue;
@@ -120,7 +119,9 @@ function parseNeighbours(body: string, baseURL: string): string[] {
   const urls = $links
     .toArray()
     .map(l => l.attribs['src'] || l.attribs['href'])
-    .map(u => normalizeURL(u, baseURL));
+    .map(u => getNormalizedURL(u, baseURL))
+    .filter(u => isValidNormalizedURL(u))
+    .map(String);
   // TODO: what about images and fonts loaded from css?
   // TODO: does not understand images added via js.
   // TODO: phantomjs / jsdom plugins that can do this?
