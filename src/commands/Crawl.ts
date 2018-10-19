@@ -35,9 +35,6 @@ export default new Commando('crawl')
     'How many requests can be active at the same time.',
     10,
   )
-  // .argument('<URL>', 'Crawl starting from this URL')
-
-  // Default command action
   .action((command: Commando) => {
     const urlList: string[] = [];
     const argURL = command.getOption('url');
@@ -52,6 +49,7 @@ export default new Commando('crawl')
         .filter(l => l !== '');
       urlList.push(...lines);
     }
+    // TODO: Move normalization and validation to MainProcess
     const { valid, invalid } = validateURLs(urlList.map(u => normalizeURL(u)));
     debug({ valid, invalid });
     if (invalid.length > 0) {
@@ -64,13 +62,6 @@ export default new Commando('crawl')
     }
     debug('processing URLs:');
     debug(valid.join('\n'));
-    const nWorkers = command.getOption('workers');
-    const concurrency = command.getOption('concurrency');
-    const rateLimit = command.getOption('rate-limit');
-    const maxDepth = command.getOption('max-depth');
-    const noResume = command.getOption('no-resume');
-    const timeout = command.getOption('timeout');
-    const maxRequests = command.getOption('max-requests');
     let exclude = command.getOption('exclude');
     if (typeof exclude === 'string') {
       exclude = [exclude];
@@ -78,16 +69,16 @@ export default new Commando('crawl')
       exclude = Array.from(exclude) as string[];
     }
     debug({ exclude });
-    debug({ maxDepth });
-    const p = new MainProcess({
-      rateLimit,
-      concurrency,
-      nWorkers,
-      maxDepth,
+    new MainProcess({
       exclude,
-      noResume,
-      timeout,
-      maxRequests,
+      timeout: command.getOption('timeout'),
+      maxDepth: command.getOption('max-depth'),
+      nWorkers: command.getOption('workers'),
+      noResume: command.getOption('no-resume'),
+      rateLimit: command.getOption('rate-limit'),
+      concurrency: command.getOption('concurrency'),
+      maxRequests: command.getOption('max-requests'),
       initialURLs: valid,
-    });
+    })
+    .start();
   });

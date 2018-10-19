@@ -53,17 +53,16 @@ export default class MainProcess {
     this.exclude = params.exclude || [];
     this.noResume = !!params.noResume;
     this.timeout = (params.timeout || 1) * 1000;
-
-    this.createSubprocesses();
-    this.setupListeners();
-    this.setupSignalHandlers();
-    if (this.noResume) {
-      PersistentState.resetState();
-    }
   }
 
   start() {
     debug('starting to crawl URLs');
+    if (this.noResume) {
+      PersistentState.resetState();
+    }
+    this.createSubprocesses();
+    this.setupListeners();
+    this.setupSignalHandlers();
   }
 
   async close() {

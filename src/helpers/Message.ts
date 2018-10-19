@@ -1,8 +1,8 @@
 
-// export default interface Message {
-//   type: string;
-//   payload?: any;
-// }
+export interface Message {
+  type: string;
+  payload?: any;
+}
 
 export const enum MessageType {
   READY = 'ready',
@@ -14,18 +14,21 @@ export const enum MessageType {
   QUEUE_EMPTY = 'queue_empty',
 }
 
-export type Message =
-  GenericMessage |
-  ReadyMessage |
-  WorkMessage |
-  DoneMessage |
-  ClaimMessage |
-  ReleaseMessage |
-  DequeueMessage |
-  QueueEmptyMessage
-;
+/**
+ * Message as a union type allows for strict checking and generic functions.
+ */
+// export type Message =
+//   // GenericMessage |
+//   ReadyMessage |
+//   WorkMessage |
+//   DoneMessage |
+//   ClaimMessage |
+//   ReleaseMessage |
+//   DequeueMessage |
+//   QueueEmptyMessage
+// ;
 
-export class GenericMessage {
+export class GenericMessage implements Message {
   constructor(public type: string, public payload?: any) {}
   toString() {
     return `type: ${this.type}, payload: ${this.payload}`;
@@ -33,8 +36,9 @@ export class GenericMessage {
 }
 
 export class ReadyMessage extends GenericMessage {
-  constructor() {
-    super(MessageType.READY);
+  payload: never;
+  constructor(public type = MessageType.READY) {
+    super(type);
   }
 }
 
@@ -45,7 +49,7 @@ export interface WorkPayload {
   workerNo?: number;
 }
 export class WorkMessage extends GenericMessage {
-  constructor(payload: WorkPayload) {
+  constructor(public payload: WorkPayload) {
     super(MessageType.WORK, payload);
   }
 }
@@ -61,7 +65,7 @@ export interface ResultPayload {
 }
 
 export class DoneMessage extends GenericMessage {
-  constructor(payload: ResultPayload) {
+  constructor(public payload: ResultPayload) {
     super(MessageType.DONE, payload);
   }
 }
@@ -70,23 +74,24 @@ export interface ClaimPayload {
   workerNo: number;
 }
 export class ClaimMessage extends GenericMessage {
-  constructor(payload: ClaimPayload) {
+  constructor(public payload: ClaimPayload) {
     super(MessageType.CLAIM, payload);
   }
 }
 export class ReleaseMessage extends GenericMessage {
-  constructor(payload: WorkPayload) {
+  constructor(public payload: WorkPayload) {
     super(MessageType.RELEASE, payload);
   }
 }
 
 export class DequeueMessage extends GenericMessage {
-  constructor(payload: string) {
+  constructor(public payload: string) {
     super(MessageType.DEQUEUE, payload);
   }
 }
 
 export class QueueEmptyMessage extends GenericMessage {
+  public payload: never;
   constructor() {
     super(MessageType.QUEUE_EMPTY);
 

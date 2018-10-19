@@ -1,11 +1,11 @@
 import { Message, messageFromJSON, MessageType } from './Message';
 import * as Debug from 'debug';
 
-export type MessageHandler = (m: Message) => void;
+export type MessageHandler<T> = (m: T) => void;
 
 export default class Subprocess {
   private debug: Debug.IDebugger;
-  private messageHandlers: Map<MessageType, Set<MessageHandler>> = new Map();
+  private messageHandlers: Map<MessageType, Set<MessageHandler<Message>>> = new Map();
 
   constructor(readonly kind: string) {
     if (!process.send) {
@@ -21,10 +21,10 @@ export default class Subprocess {
     process.send!(msg);
   }
 
-  addMessageListener(type: MessageType, handler: MessageHandler) {
-    const handlers = this.messageHandlers.get(type) || new Set();
+  addMessageListener<T extends Message>(type: MessageType, handler: MessageHandler<T>) {
+    const handlers: Set<MessageHandler<T>> = this.messageHandlers.get(type) || new Set();
     handlers.add(handler);
-    this.messageHandlers.set(type, handlers);
+    this.messageHandlers.set(type, handlers as Set<MessageHandler<Message>>);
   }
 
   readEnvString(name: string, fallback: string = ''): string {
