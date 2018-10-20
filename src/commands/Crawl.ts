@@ -3,7 +3,7 @@ import Commando from 'console-commando';
 import { validateURLs } from '@helpers/url';
 import MainProcess from '@processes/MainProcess';
 import * as Debug from 'debug';
-import { getUrlsFromArgOrSTDIN, getArrayOption } from '@helpers/argument';
+import { getURLsFromArgOrSTDIN, getArrayOption } from '@helpers/argument';
 import output from '../helpers/output';
 
 const debug = Debug('wreck:commands:crarwl');
@@ -37,7 +37,7 @@ export default new Commando('crawl')
     10,
   )
   .action((command: Commando) => {
-    const urlList = getUrlsFromArgOrSTDIN(command.getOption('url'));
+    const urlList = getURLsFromArgOrSTDIN(command.getOption('url'));
     const { valid, invalid } = validateURLs(urlList);
     debug({ valid, invalid });
     if (invalid.length > 0) {

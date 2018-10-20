@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 
-export function getUrlsFromArgOrSTDIN(argURL?: string): string[] {
+export function getURLsFromArgOrSTDIN(argURL?: string): string[] {
   if (argURL) {
     return[argURL];
   }
@@ -20,6 +20,5 @@ export function getArrayOption(optVal?: string | string[] | null): string[] {
   if (typeof optVal === 'string') {
     return [optVal];
   }
-
   return Array.from(optVal.map(String));
 }

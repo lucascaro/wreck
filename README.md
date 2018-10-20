@@ -23,6 +23,7 @@ This project is in the [design](./DESIGN.md) and prototype phase.
   - [x] Exclude patterns
   - [x] Persistent state across runs
   - [x] Maximum request limit
+  - [x] Output levels
   - [ ] Nofollow patters
   - [ ] Include patterns
 - [ ] Domain whitelist
