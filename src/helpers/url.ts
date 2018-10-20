@@ -14,7 +14,7 @@ export const VALID_PROTOCOLS = ['http:', 'https:'];
 export function getNormalizedURL(str: string, base?: string): URL | null {
   try {
     // Default to https if no base url is provided
-    const adjusted = (base || str.includes('://')) ? str : `https://${str}`;
+    const adjusted = (!base && str.startsWith('//')) ? `https:${str}` : str;
     debug(`adjusted URL: ${adjusted}`);
     const theURL = new URL(adjusted, base);
     // Remove fragment

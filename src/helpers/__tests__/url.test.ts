@@ -11,6 +11,8 @@ describe('url#getNormalizedURL', () => {
       .toEqual(new URL('http://www.google.com/'));
     expect(url.getNormalizedURL('https://www.google.com'))
       .toEqual(new URL('https://www.google.com/'));
+    expect(url.getNormalizedURL('//www.google.com'))
+      .toEqual(new URL('https://www.google.com/'));
   });
 
   test('empty base', () => {
@@ -18,8 +20,8 @@ describe('url#getNormalizedURL', () => {
   });
 
   test('default to https if no base is set', () => {
-    expect(url.getNormalizedURL('www.google.com')).toBeInstanceOf(URL);
-    expect(url.getNormalizedURL('www.google.com'))
+    expect(url.getNormalizedURL('http://www.google.com')).toBeInstanceOf(URL);
+    expect(url.getNormalizedURL('https://www.google.com'))
       .toEqual(new URL('https://www.google.com/'));
     expect(url.getNormalizedURL('//www.google.com'))
       .toEqual(new URL('https://www.google.com/'));
@@ -50,11 +52,40 @@ describe('url#getNormalizedURL', () => {
 });
 
 describe('url#isValidNormalizedURL', () => {
+  test('rejects empty', () => {
+    expect(url.isValidNormalizedURL()).toBe(false);
+    expect(url.isValidNormalizedURL(null)).toBe(false);
+  });
+
   test('checks protocol', () => {
     expect(url.isValidNormalizedURL(url.getNormalizedURL('http://google.com'))).toBe(true);
     expect(url.isValidNormalizedURL(url.getNormalizedURL('https://google.com'))).toBe(true);
     expect(url.isValidNormalizedURL(url.getNormalizedURL('ftp://google.com'))).toBe(false);
     expect(url.isValidNormalizedURL(url.getNormalizedURL('ws://google.com'))).toBe(false);
     expect(url.isValidNormalizedURL(url.getNormalizedURL('wat://google.com'))).toBe(false);
+  });
+});
+
+describe('url#validateURLs', () => {
+  test('empty input', () => {
+    expect(url.validateURLs([])).toEqual({ valid: [], invalid: [] });
+  });
+
+  test('several urls', () => {
+    const testURLsIn = [
+      'http://google.com',
+      'https://google.com',
+      '//google.com',
+      'google.com',
+    ];
+    const valid = [
+      new URL('http://google.com/'),
+      new URL('https://google.com/'),
+      new URL('https://google.com/'),
+    ];
+    const invalid = [
+      'google.com',
+    ];
+    expect(url.validateURLs(testURLsIn)).toEqual({ valid, invalid });
   });
 });

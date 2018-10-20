@@ -37,8 +37,10 @@ describe('argument#getURLsFromArgOrStdin', () => {
       'test2',
       3,
     ];
+    const ogFn = fs.readFileSync;
     fs.readFileSync = jest.fn(() => mockSTDIN.join('\n'));
     expect(A.getURLsFromArgOrSTDIN()).toEqual(['test1', 'test2', '3']);
+    fs.readFileSync = ogFn;
   });
 });
 
