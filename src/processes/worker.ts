@@ -1,7 +1,7 @@
 import { DoneMessage, MessageType, ReadyMessage, WorkMessage, WorkPayload } from '@helpers/Message';
 import Subprocess from '@helpers/Subprocess';
 import * as Debug from 'debug';
-import RequestHelper from '@root/src/helpers/RequestHelper';
+import requestHelper from '@root/src/helpers/requestHelper';
 
 const CHILD_NO = process.env.WRECK_CHILD_NO;
 const debug = Debug(`wreck:worker.${CHILD_NO}`);
@@ -22,7 +22,7 @@ debug({
   EXCLUDE_URLS,
   REQUEST_TIMEOUT,
 });
-const request = RequestHelper({
+const request = requestHelper({
   MAX_CRAWL_DEPTH,
   EXCLUDE_URLS,
   REQUEST_TIMEOUT,

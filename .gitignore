@@ -1,4 +1,4 @@
 /node_modules/**
 /lib/**
 /coverage/**
-wreck.run.state.json
+*.state.json

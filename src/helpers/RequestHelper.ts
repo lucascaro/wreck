@@ -140,8 +140,8 @@ export default function requestHelper({
     // TODO: what if the server does not allow HEAD?
     const parsed = url.parse(work.url);
     const re = /\.(jpg|jpeg|svg|js|css|png|webp|)$/i;
-    if (parsed.path && re.test(parsed.path)) {
-      debug(`method = HEAD for ${parsed.path}`);
+    if (parsed.pathname && re.test(parsed.pathname)) {
+      debug(`method = HEAD for ${parsed.pathname}`);
       return 'HEAD';
     }
 
