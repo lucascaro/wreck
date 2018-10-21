@@ -1,7 +1,7 @@
 import { fork, ChildProcess } from 'child_process';
 import * as Debug from 'debug';
 import * as os from 'os';
-import { WorkMessage, ClaimMessage, MessageType, DoneMessage } from '@helpers/Message';
+import { WorkMessage, ClaimMessage, MessageType, DoneMessage, messageFromJSON } from '@helpers/Message';
 import { PersistentState } from '../helpers/PersistentState';
 import output from '@helpers/output';
 
@@ -163,8 +163,9 @@ export default class Mediator {
     }
     // END DEBUG CODE
   }
-  private handleQueueMessage(message: any) {
-    debug(`received message from queue: ${JSON.stringify(message)}`);
+  private handleQueueMessage(m: any) {
+    debug(`received message from queue: ${JSON.stringify(m)}`);
+    const message = messageFromJSON(m);
     if (!message || !message.type) {
       debug('received invalid message:', message);
       return;
