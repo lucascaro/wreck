@@ -160,6 +160,7 @@ function startQueue() {
         });
       });
     }
+    checkQueueIsEmpty();
   }
 
   function markAsDone(message: DoneMessage, finishedUrls: number) {
@@ -191,8 +192,12 @@ function startQueue() {
         enqueueURL(payload);
       });
     }
+    checkQueueIsEmpty();
+  }
+
+  function checkQueueIsEmpty() {
     if (workQueue.size === 0 && workClaims.size === 0) {
-          // Queue is done!
+      // Queue is done!
       subprocess.send(new QueueEmptyMessage());
     }
   }

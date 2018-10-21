@@ -7,7 +7,7 @@ import output from '@helpers/output';
 
 const debug = Debug('wreck:processes:main');
 
-export interface MainProcessParameters {
+export interface MediatorParameters {
   initialURLs: string[];
   concurrency: number;
   nRetries: number;
@@ -20,7 +20,7 @@ export interface MainProcessParameters {
   timeout: number;
 }
 
-export default class MainProcess {
+export default class Mediator {
   private queue!: ChildProcess;
   private workers!: ChildProcess[];
   private initialURLs: string[];
@@ -38,7 +38,7 @@ export default class MainProcess {
   private queueIsReady = false;
 
   constructor(
-    params: Partial<MainProcessParameters>,
+    params: Partial<MediatorParameters>,
   ) {
     this.initialURLs = params.initialURLs || [];
     debug('new Crawler created');
@@ -210,7 +210,8 @@ export default class MainProcess {
         // which could be immediately if the queue has finished before
         // this particular worker.
         this.onQueueReady(() => {
-          [...Array(this.concurrency)].forEach((_) => {
+          const workerConcurrency = Math.ceil(this.concurrency / this.nWorkers);
+          [...Array(workerConcurrency)].forEach((_) => {
             this.queue.send(new ClaimMessage({ workerNo }));
           });
         });

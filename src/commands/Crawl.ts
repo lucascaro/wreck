@@ -1,7 +1,7 @@
 // tslint:disable-next-line:import-name
 import Commando from 'console-commando';
 import { validateURLs } from '@helpers/url';
-import MainProcess from '@processes/MainProcess';
+import Mediator from '@root/src/processes/Mediator';
 import * as Debug from 'debug';
 import { getURLsFromArgOrSTDIN, getArrayOption } from '@helpers/argument';
 import output from '../helpers/output';
@@ -50,7 +50,7 @@ export default new Commando('crawl')
     }
     output.verbose('processing URLs:');
     output.verbose(valid.join('\n'));
-    new MainProcess({
+    new Mediator({
       exclude: getArrayOption(command.getOption('exclude')),
       timeout: command.getOption('timeout'),
       maxDepth: command.getOption('max-depth'),
