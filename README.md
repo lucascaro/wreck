@@ -40,11 +40,11 @@ This project is in the [design](./DESIGN.md) and prototype phase.
 
 ## Installing
 
-  ```bash
-  git clone git@github.com:lucascaro/wreck.git
-  cd wreck
-  npm link
-  ```
+```bash
+npm i -g @lucascaro/wreck
+```
+
+Invoke it by running `wreck`.
 
 ## Running
 
@@ -122,6 +122,14 @@ wreck crawl -u https://example.com --concurrency=1 --workers=1 --rate-limit=1
 ```
 
 ### Debug
+
+Clone the repository:
+
+  ```bash
+  git clone git@github.com:lucascaro/wreck.git
+  cd wreck
+  npm link
+  ```
 
 This project uses [debug](https://www.npmjs.com/package/debug). Set the environment variable `DEBUG` to `*` to see all output:
 
