@@ -31,8 +31,9 @@ export default function requestHelper({
     const { workerNo = CHILD_NO } = work;
     try {
       const response = await fetch(work.url, {
-        method,
+        method: 'GET',
         timeout: REQUEST_TIMEOUT,
+        size: method === 'HEAD' ? 0 : undefined,
       });
 
       return await handleHTTPResponse(response, work, method, retries);
