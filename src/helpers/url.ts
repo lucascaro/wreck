@@ -16,7 +16,7 @@ export function getNormalizedURL(str: string, base?: string): URL | null {
     // Default to https if no base url is provided
     const adjusted = (!base && str.startsWith('//')) ? `https:${str}` : str;
     debug(`adjusted URL: ${adjusted}`);
-    const theURL = new URL(adjusted, base);
+    const theURL = new url.URL(adjusted, base);
     // Remove fragment
     theURL.hash = '';
     debug(`normalized URL: ${theURL} from ${str}`);
