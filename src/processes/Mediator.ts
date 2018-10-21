@@ -1,7 +1,13 @@
 import { fork, ChildProcess } from 'child_process';
 import * as Debug from 'debug';
 import * as os from 'os';
-import { WorkMessage, ClaimMessage, MessageType, DoneMessage, messageFromJSON } from '@helpers/Message';
+import {
+  WorkMessage,
+  ClaimMessage,
+  MessageType,
+  DoneMessage,
+  messageFromJSON,
+} from '@helpers/Message';
 import { PersistentState } from '../helpers/PersistentState';
 import output from '@helpers/output';
 

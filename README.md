@@ -1,4 +1,4 @@
-# W.R.E.C.K. Web Crawler
+# W.R.E.C.K. Web Crawler [![Build Status](https://travis-ci.com/lucascaro/wreck.svg?branch=master)](https://travis-ci.com/lucascaro/wreck)
 
 WRECK is a fast, reliable, flexible web crawling kit.
 

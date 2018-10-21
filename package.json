@@ -1,5 +1,5 @@
 {
-  "name": "wreck",
+  "name": "@lucascaro/wreck",
   "version": "0.0.1",
   "description": "Web Recursive and Efficiently Crawl and checK",
   "main": "bin/cli.js",
@@ -13,11 +13,11 @@
     "build:production": "npm run clean && ttsc -p . && ef-tspm",
     "watch": "nodemon -e ts --exec 'tsc -p . && ef-tspm || true'",
     "prepublishOnly": "npm run build",
-    "release": "npm version patch && npm publish",
+    "release": "npm run test && npm run build:production && npm version patch && git push --follow-tags",
     "test": "ts-node ./node_modules/jest/bin/jest.js --verbose"
   },
   "author": "Lucas Caro <lucascaro@gmail.com>",
-  "license": "ISC",
+  "license": "GPL-3",
   "devDependencies": {
     "@ef-carbon/tspm": "^2.2.5",
     "@types/cheerio": "^0.22.9",
