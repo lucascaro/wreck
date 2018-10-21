@@ -6,14 +6,24 @@ import * as Debug from 'debug';
 
 const debug = Debug('wreck:helpers:persistence');
 
-const fileName = './wreck.run.state.json';
+let fileName: string;
 
 export namespace PersistentState {
   let outStream: WriteStream | null = null;
-  export function readState(outAllURLs: Set<String>, outWorkQueue: Map<string, WorkPayload>) {
+
+  export function init(stateFileName: string = './wreck.run.state.json') {
+    fileName = stateFileName;
+  }
+
+  export function readState(
+    outAllURLs: Set<String>,
+    outWorkQueue: Map<string, WorkPayload>,
+    ): Promise<ResultPayload[]> {
+    if (!fileName) { throw new Error('persistent state not initialized'); }
     return new Promise((resolve, reject) => {
+      const allWork: ResultPayload[] = [];
       if (!existsSync(fileName)) {
-        resolve();
+        resolve(allWork);
         return;
       }
       createReadStream(fileName, { encoding: 'utf-8' })
@@ -23,6 +33,7 @@ export namespace PersistentState {
           const result: ResultPayload = JSON.parse(chunk);
           // debug({ ...result, neighbours: result.neighbours.length });
           outAllURLs.add(result.url);
+          allWork.push(result);
           result.neighbours.forEach((neighbour) => {
             // Ignore URLs that were already added.
             if (!outAllURLs.has(neighbour)) {
@@ -39,12 +50,13 @@ export namespace PersistentState {
           callback();
         },
       }))
-      .on('finish', resolve)
+      .on('finish', () => resolve(allWork))
       .on('error', reject);
     });
   }
 
   export function write(chunk: any) {
+    if (!fileName) { throw new Error('persistent state not initialized'); }
     if (!outStream) {
       outStream = createWriteStream(fileName, { encoding: 'utf-8', flags: 'a' });
     }
@@ -52,6 +64,7 @@ export namespace PersistentState {
   }
 
   export function resetState() {
+    if (!fileName) { throw new Error('persistent state not initialized'); }
     if (outStream) {
       outStream.close();
       outStream = null;

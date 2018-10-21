@@ -24,6 +24,10 @@ export default {
     }
   },
 
+  always(...args: any) {
+    console.log(...args);
+  },
+
   warn(...args: any) {
     if (outputLevel >= OutputLevel.SILENT) {
       console.warn(...args);
