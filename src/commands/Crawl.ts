@@ -34,7 +34,7 @@ export default new Commando('crawl')
   .option(
     '-c --concurrency <concurrency>',
     'How many requests can be active at the same time.',
-    10,
+    100,
   )
   .action((command: Commando) => {
     const urlList = getURLsFromArgOrSTDIN(command.getOption('url'));
