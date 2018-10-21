@@ -11,6 +11,7 @@ import {
   DoneMessage,
   ReadyMessage,
   ClaimMessage,
+  ErrorMessage,
 } from '@helpers/Message';
 import { PersistentState } from '@helpers/PersistentState';
 import output from '@helpers/output';
@@ -66,7 +67,10 @@ const allUrls: Set<string> = new Set();
 
 debug('Attempting to restore previous state...');
 PersistentState.readState(allUrls, workQueue)
-.then(startQueue);
+.then(startQueue)
+.catch((e) => {
+  subprocess.send(new ErrorMessage(e.message));
+});
 
 function startQueue() {
   let finishedUrls = allUrls.size - workQueue.size;

@@ -191,6 +191,12 @@ export default class Mediator {
           process.exit(0);
         });
         break;
+      case MessageType.ERROR:
+        output.error(`Fatal Error: ${message.payload}.`);
+        this.close().then(() => {
+          process.exit(1);
+        });
+        break;
       default:
         debug('received invalid message:', message);
     }
