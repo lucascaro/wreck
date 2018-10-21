@@ -23,7 +23,9 @@ import { getNormalizedURL, isValidNormalizedURL } from '@helpers/url';
 import fetch, { Response } from 'node-fetch';
 import * as cheerio from 'cheerio';
 import * as url from 'url';
-import { waitFor } from './promise';
+import * as util from 'util';
+
+const waitFor = util.promisify(setTimeout);
 
 type RequestHelperParams = {
   debug: Function,
