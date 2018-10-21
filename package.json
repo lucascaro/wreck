@@ -1,6 +1,6 @@
 {
   "name": "@lucascaro/wreck",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Web Recursive and Efficiently Crawl and checK",
   "main": "bin/cli.js",
   "bin": {
