@@ -12,21 +12,8 @@ export const enum MessageType {
   RELEASE = 'release',
   DEQUEUE = 'dequeue',
   QUEUE_EMPTY = 'queue_empty',
+  ERROR = 'error',
 }
-
-/**
- * Message as a union type allows for strict checking and generic functions.
- */
-// export type Message =
-//   // GenericMessage |
-//   ReadyMessage |
-//   WorkMessage |
-//   DoneMessage |
-//   ClaimMessage |
-//   ReleaseMessage |
-//   DequeueMessage |
-//   QueueEmptyMessage
-// ;
 
 export class GenericMessage implements Message {
   constructor(public type: string, public payload?: any) {}
@@ -98,6 +85,12 @@ export class QueueEmptyMessage extends GenericMessage {
   }
 }
 
+export class ErrorMessage extends GenericMessage {
+  constructor(public payload: string) {
+    super(MessageType.ERROR, payload);
+  }
+}
+
 export function messageFromJSON(obj: Partial<Message>): Message {
   switch (obj.type) {
     case MessageType.READY:
@@ -119,6 +112,8 @@ export function messageFromJSON(obj: Partial<Message>): Message {
       return new DequeueMessage(obj.payload);
     case MessageType.QUEUE_EMPTY:
       return new QueueEmptyMessage();
+    case MessageType.ERROR:
+      return new ErrorMessage(obj.payload);
     default:
       const type = obj.type || 'unknown';
       const payload = obj.payload || obj;
