@@ -2,6 +2,9 @@
   "name": "@lucascaro/wreck",
   "version": "0.0.3",
   "description": "Web Recursive and Efficiently Crawl and checK",
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "bin/cli.js",
   "bin": {
     "wreck": "./bin/cli.js"
