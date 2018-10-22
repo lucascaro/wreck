@@ -42,7 +42,7 @@
     "typescript": "^3.1.3"
   },
   "dependencies": {
-    "console-commando": "^4.0.0",
+    "console-commando": "^5.0.0",
     "debug": "^4.1.0",
     "node-fetch": "^2.2.0",
     "p-ratelimit": "^0.9.5",

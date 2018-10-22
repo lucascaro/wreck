@@ -76,7 +76,7 @@ export default class Mediator {
     this.maxRequests = params.maxRequests || Infinity;
     this.exclude = params.exclude || [];
     this.noResume = !!params.noResume;
-    this.timeout = (params.timeout || 1) * 1000;
+    this.timeout = (params.timeout || 1000);
   }
 
   start() {
@@ -127,7 +127,7 @@ export default class Mediator {
             WRECK_WORKER_CONCURRENCY: String(this.concurrency),
             WRECK_WORKER_MAX_DEPTH: String(this.maxDepth),
             WRECK_WORKER_EXCLUDE_URLS: JSON.stringify(this.exclude),
-            WRECK_WORKER_REQUEST_TIMEOUT: JSON.stringify(this.exclude),
+            WRECK_WORKER_REQUEST_TIMEOUT: JSON.stringify(this.timeout),
           },
         },
       );

@@ -30,14 +30,14 @@ const debug = Debug('wreck:commands:crarwl');
 export default new Commando('crawl')
   .option('-u --url <URL>', 'Crawl starting from this URL')
   .option('-R --retries <number>', 'Maximum retries for a URL', 3)
-  .option('-t --timeout <number>', 'Maximum seconds to wait for requests', 1)
+  .option('-t --timeout <number>', 'Maximum milliseconds to wait for requests', 1000)
   .option('-m --max-requests <number>', 'Maximum request for this run.', Infinity)
   .option(
     '-n --no-resume',
     'Force the command to restart crawling from scratch, even if there is saved state.',
   )
   .option(
-    '-w --workers <nWorkers>',
+    '-w --workers <number>',
     'Start this many workers. Defaults to one per CPU.',
   )
   .option('-d --max-depth <number>', 'Maximum link depth to crawl.')
@@ -51,7 +51,7 @@ export default new Commando('crawl')
     [],
   )
   .option(
-    '-c --concurrency <concurrency>',
+    '-c --concurrency <number>',
     'How many requests can be active at the same time.',
     100,
   )
