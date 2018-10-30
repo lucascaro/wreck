@@ -18,7 +18,7 @@
  */
 
 // tslint:disable-next-line:import-name
-import Commando from 'console-commando';
+import { command, Command, option, multiOption } from 'console-commando';
 import { validateURLs } from '@helpers/url';
 import Mediator from '@root/src/processes/Mediator';
 import * as Debug from 'debug';
@@ -27,36 +27,24 @@ import output from '../helpers/output';
 
 const debug = Debug('wreck:commands:crarwl');
 
-export default new Commando('crawl')
-  .option('-u --url <URL>', 'Crawl starting from this URL')
-  .option('-R --retries <number>', 'Maximum retries for a URL', 3)
-  .option('-t --timeout <number>', 'Maximum milliseconds to wait for requests', 1000)
-  .option('-m --max-requests <number>', 'Maximum request for this run.', Infinity)
-  .option(
-    '-n --no-resume',
-    'Force the command to restart crawling from scratch, even if there is saved state.',
-  )
-  .option(
-    '-w --workers <number>',
-    'Start this many workers. Defaults to one per CPU.',
-  )
-  .option('-d --max-depth <number>', 'Maximum link depth to crawl.')
-  .option(
-    '-r --rate-limit <number>',
-    'Number of requests that will be made per second.',
-  )
-  .option(
-    '-e --exclude <regex>',
-    'Do now crawl URLs that match this regex. Can be specified multiple times.',
-    [],
-  )
-  .option(
-    '-c --concurrency <number>',
-    'How many requests can be active at the same time.',
-    100,
-  )
-  .action((command: Commando) => {
-    const urlList = getURLsFromArgOrSTDIN(command.getOption('url'));
+export default command('crawl')
+  .withDescription('Start or continue crawling')
+  .withStringOption(option('url', 'u', 'Crawl starting from this URL'))
+  .withNumberOption(option('retries', 'R', 'Maximum retries for a URL', 3))
+  .withNumberOption(option('timeout', 't', 'Maximum milliseconds to wait for requests', 1000))
+  .withNumberOption(option('max-depth', 'd',  'Maximum link depth to crawl.'))
+  .withNumberOption(option('workers', 'w', 'Start this many workers. Defaults to one per CPU.'))
+  .withNumberOption(option('rate-limit', 'r', 'Number of requests that will be made per second.'))
+  .withNumberOption(option('max-requests', 'm', 'Maximum request for this run.', Infinity))
+  .withStringOption(multiOption(
+    'exclude',
+    'e',
+    'Do now recurse into URLs that match this regex. Can be specified multiple times.',
+  ))
+  .withNumberOption(option('concurrency', 'c', 'Maximum concurrent requests.', 100))
+  .withFlag(option('no-resume', 'n', 'Delete saved state before crawling.'))
+  .withHandler((command: Command) => {
+    const urlList = getURLsFromArgOrSTDIN(command.getStringOption('url'));
     const { valid, invalid } = validateURLs(urlList);
     debug({ valid, invalid });
     if (invalid.length > 0) {
@@ -70,15 +58,14 @@ export default new Commando('crawl')
     output.verbose('processing URLs:');
     output.verbose(valid.join('\n'));
     new Mediator({
-      exclude: getArrayOption(command.getOption('exclude')),
-      timeout: command.getOption('timeout'),
-      maxDepth: command.getOption('max-depth'),
-      nWorkers: command.getOption('workers'),
-      noResume: command.getOption('no-resume'),
-      rateLimit: command.getOption('rate-limit'),
-      concurrency: command.getOption('concurrency'),
-      maxRequests: command.getOption('max-requests'),
-      // .map(u => normalizeURL(u)),
+      exclude: getArrayOption(command.getStringArrayOption('exclude')),
+      timeout: command.getNumberOption('timeout'),
+      maxDepth: command.getNumberOption('max-depth'),
+      nWorkers: command.getNumberOption('workers'),
+      noResume: command.getFlag('no-resume'),
+      rateLimit: command.getNumberOption('rate-limit'),
+      concurrency: command.getNumberOption('concurrency'),
+      maxRequests: command.getNumberOption('max-requests'),
       initialURLs: valid.map(String),
     })
     .start();

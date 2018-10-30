@@ -17,21 +17,17 @@
  *
  */
 
-// tslint:disable-next-line:import-name
-import Commando from 'console-commando';
-import { validateURLs } from '@helpers/url';
-import Mediator from '@root/src/processes/Mediator';
 import * as Debug from 'debug';
-import { getURLsFromArgOrSTDIN, getArrayOption } from '@helpers/argument';
 import output from '../helpers/output';
 import { PersistentState } from '../helpers/PersistentState';
 import { WorkPayload } from '../helpers/Message';
+import { command, Command, ReturnValue } from 'console-commando';
 
 const debug = Debug('wreck:commands:report');
 
-export default new Commando('report')
-  .action(async (command: Commando) => {
-    const fileName = command.getOption('state-file');
+export default command('report')
+  .withDescription('Print a summary of the last run.')
+  .withHandler(async (command: Command) => {
     const allURLs: Set<string> = new Set();
     const workQueue: Map<string, WorkPayload> = new Map();
     const results = await PersistentState.readState(allURLs, workQueue);
@@ -56,4 +52,5 @@ export default new Commando('report')
     output.normal(`Success: ${successes.length}`);
     output.normal(`Error: ${errors.length}`);
     output.normal(`NotFound: ${notFound.length}`);
+    return ReturnValue.SUCCESS;
   });

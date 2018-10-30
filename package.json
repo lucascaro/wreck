@@ -42,8 +42,9 @@
     "typescript": "^3.1.3"
   },
   "dependencies": {
-    "console-commando": "^5.0.0",
+    "console-commando": "^6.0.0-alpha.1",
     "debug": "^4.1.0",
+    "immutable": "^4.0.0-rc.11",
     "node-fetch": "^2.2.0",
     "p-ratelimit": "^0.9.5",
     "split2": "^3.0.0"
