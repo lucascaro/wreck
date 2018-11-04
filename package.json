@@ -1,6 +1,6 @@
 {
   "name": "@lucascaro/wreck",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Web Recursive and Efficiently Crawl and checK",
   "publishConfig": {
     "access": "public"
