@@ -27,8 +27,9 @@ export const VALID_PROTOCOLS = ['http:', 'https:'];
 /**
  * Returns a normalized URL or null if the input is invalid.
  *
- * @param str the string to validate and convert to a URL
+ * @param str the string to validate and convert to a URL.
  * @param base the base url in case of relative paths.
+ * @returns a parsed URL or null.
  */
 export function getNormalizedURL(str: string, base?: string): URL | null {
   try {

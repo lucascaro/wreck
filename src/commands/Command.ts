@@ -19,7 +19,7 @@
 
 import output, { OutputLevel } from '@helpers/output';
 // tslint:disable-next-line:import-name
-import { command, Command, option } from 'console-commando';
+import { command, Command, flag, stringOption } from 'console-commando';
 import Crawl from './Crawl';
 import Report from './Report';
 import { PersistentState } from '../helpers/PersistentState';
@@ -30,9 +30,9 @@ const { version } = require('@root/package.json');
 export default command('wreck')
   .withVersion(version)
   .withDescription('Reliable and Efficient Web Crawler')
-  .withFlag(option('verbose', 'v', 'Make operation more talkative.'))
-  .withFlag(option('silent', 's', 'Display errors and warnings only.'))
-  .withStringOption(option('state-file', 'f', 'Path to state file.', './wreck.run.state.json'))
+  .withOption(flag('verbose', 'v', 'Make operation more talkative.'))
+  .withOption(flag('silent', 's', 'Display errors and warnings only.'))
+  .withOption(stringOption('state-file', 'f', 'Path to state file.', './wreck.run.state.json'))
   .withSubCommand(Crawl)
   .withSubCommand(Report)
   .withPreProcessor((command: Command) => {
