@@ -43,14 +43,17 @@ export namespace PersistentState {
   export function readState(
     outAllURLs: Set<String>,
     outWorkQueue: Map<string, WorkPayload>,
+    options?: Partial<{retryFailed: boolean}>,
     ): Promise<ResultPayload[]> {
     return new Promise((resolve, reject) => {
       if (!init()) { throw new Error('persistent state not initialized'); }
       const allWork: ResultPayload[] = [];
+      const retryFailed = options && options.retryFailed;
       if (!existsSync(fileName)) {
         resolve(allWork);
         return;
       }
+      
       createReadStream(fileName, { encoding: 'utf-8' })
       .pipe(split2())
       .pipe(new Writable({
@@ -71,7 +74,9 @@ export namespace PersistentState {
               outAllURLs.add(neighbour);
             }
           });
-          outWorkQueue.delete(result.url);
+          if (!retryFailed || result.statusCode >= 200 && result.statusCode < 400) {
+            outWorkQueue.delete(result.url);
+          }
           callback();
         },
       }))

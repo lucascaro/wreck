@@ -36,6 +36,7 @@ export interface MediatorParameters {
   initialURLs: string[];
   concurrency: number;
   nRetries: number;
+  retryFailed: boolean;
   nWorkers: number;
   rateLimit: number;
   maxDepth: number;
@@ -52,6 +53,7 @@ export default class Mediator {
   private concurrency: number;
   private rateLimit: number;
   private nRetries: number;
+  private retryFailed: boolean;
   private nWorkers: number;
   private maxDepth: number;
   private maxRequests: number;
@@ -72,6 +74,7 @@ export default class Mediator {
     this.concurrency = params.concurrency || 10;
     this.rateLimit = params.rateLimit || Infinity;
     this.nRetries = params.nRetries || 3;
+    this.retryFailed = params.retryFailed || false;
     this.maxDepth = params.maxDepth || Infinity;
     this.maxRequests = params.maxRequests || Infinity;
     this.exclude = params.exclude || [];
@@ -111,6 +114,7 @@ export default class Mediator {
         WRECK_RATE_LIMIT_RATE: String(this.rateLimit),
         WRECK_RATE_LIMIT_CONCURRENCY: String(this.concurrency),
         WRECK_QUEUE_MAX_REQUESTS: String(this.maxRequests),
+        WRECK_QUEUE_RETRY_FAILED: JSON.stringify(this.retryFailed),
       },
     });
     this.workers = [...Array(this.nWorkers)].map((_, i) => {

@@ -53,6 +53,12 @@ export default class Subprocess {
   readEnvNumber(name: string, fallback: number): number {
     return Number(process.env[name]) || fallback;
   }
+
+  readEnvBool(name: string, fallback: boolean): boolean {
+    const str = process.env[name] || '';
+    return !!JSON.parse(str) || fallback;
+  }
+  
   readEnvArray<T>(name: string, fallback: T[]): T[] {
     const str = process.env[name] || '';
     return JSON.parse(str) || fallback;

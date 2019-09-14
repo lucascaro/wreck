@@ -17,40 +17,51 @@
  *
  */
 
-import * as Debug from 'debug';
-import output from '../helpers/output';
-import { PersistentState } from '../helpers/PersistentState';
-import { WorkPayload } from '../helpers/Message';
-import { command, Command, ReturnValue } from 'console-commando';
+import * as Debug from "debug";
+import output from "../helpers/output";
+import { PersistentState } from "../helpers/PersistentState";
+import { WorkPayload } from "../helpers/Message";
+import { command, Command, ReturnValue } from "console-commando";
 
-const debug = Debug('wreck:commands:report');
+const debug = Debug("wreck:commands:report");
 
-export default command('report')
-  .withDescription('Print a summary of the last run.')
+export default command("report")
+  .withDescription("Print a summary of the last run.")
   .withHandler(async (command: Command) => {
     const allURLs: Set<string> = new Set();
     const workQueue: Map<string, WorkPayload> = new Map();
     const results = await PersistentState.readState(allURLs, workQueue);
-    output.normal(`Processed ${allURLs.size} URLs. ${workQueue.size} are pending.`);
+    output.normal(
+      `Processed ${allURLs.size} URLs. ${workQueue.size} are pending.`
+    );
     // TODO: report options.
     const successes = results.filter(r => r.success);
     const errors = results.filter(r => !r.success);
     const notFound = results.filter(r => r.statusCode === 404);
+    const statuses = results.reduce((p, c) => {
+      p.set(c.statusCode, (p.get(c.statusCode) || 0) + 1);
+      return p;
+    }, new Map());
 
     // TODO: formatters
     results.forEach((result, i) => {
       output.verbose(
-        '->',
+        "->",
         i,
         result.url,
         result.referrer,
         result.statusCode,
-        result.success ? 'OK' : 'ERROR',
+        result.success ? "OK" : "ERROR"
       );
     });
 
     output.normal(`Success: ${successes.length}`);
     output.normal(`Error: ${errors.length}`);
     output.normal(`NotFound: ${notFound.length}`);
+    output.normal(`Statuse Codes:`);
+    new Map([...statuses.entries()].sort()).forEach((count, code) => {
+      output.normal(`${String(code).padStart(3)} => ${count}`);
+    });
+
     return ReturnValue.SUCCESS;
   });

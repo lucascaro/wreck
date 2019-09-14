@@ -43,6 +43,7 @@ const subprocess = new Subprocess('queue');
 // TODO: if no limit is specified, there should be no rate limit.
 const RATE_LIMIT_RATE = subprocess.readEnvNumber('WRECK_RATE_LIMIT_RATE', Infinity);
 const MAX_REQUESTS = subprocess.readEnvNumber('WRECK_QUEUE_MAX_REQUESTS', Infinity);
+const RETRY_FAILED = subprocess.readEnvBool('WRECK_QUEUE_RETRY_FAILED', false);
 const RATE_LIMIT_CONCURRENCY = subprocess.readEnvNumber(
   'WRECK_RATE_LIMIT_CONCURRENCY',
   Infinity,
@@ -85,7 +86,7 @@ const pendingClaims: number[] = [];
 const allUrls: Set<string> = new Set();
 
 debug('Attempting to restore previous state...');
-PersistentState.readState(allUrls, workQueue)
+PersistentState.readState(allUrls, workQueue, {retryFailed: RETRY_FAILED})
 .then(startQueue)
 .catch((e) => {
   subprocess.send(new ErrorMessage(e.message));

@@ -50,6 +50,7 @@ export default command('crawl')
   ))
   .withOption(numericOption('concurrency', 'c', 'Maximum concurrent requests.', 100))
   .withOption(flag('no-resume', 'n', 'Delete saved state before crawling.'))
+  .withOption(flag('retry-failed', 'F', 'Retry URLs that previously failed.'))
   .withHandler((command: Command) => {
     const urlList = getURLsFromArgOrSTDIN(command.getStringOption('url'));
     const { valid, invalid } = validateURLs(urlList);
@@ -68,11 +69,13 @@ export default command('crawl')
       exclude: getArrayOption(command.getMultiStringOption('exclude')),
       timeout: command.getNumericOption('timeout'),
       maxDepth: command.getNumericOption('max-depth'),
+      nRetries: command.getNumericOption('retries'),
       nWorkers: command.getNumericOption('workers'),
       noResume: command.getFlag('no-resume'),
       rateLimit: command.getNumericOption('rate-limit'),
       concurrency: command.getNumericOption('concurrency'),
       maxRequests: command.getNumericOption('max-requests'),
+      retryFailed: command.getFlag('retry-failed'),
       initialURLs: valid.map(String),
     })
     .start();

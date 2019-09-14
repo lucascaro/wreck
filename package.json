@@ -14,7 +14,7 @@
     "lint": "tslint --project tsconfig.json -c tslint.json src/**/*.ts",
     "build": "npm run clean && ttsc -p . ",
     "build:production": "npm run clean && ttsc -p . ",
-    "watch": "nodemon -e ts --exec 'ttsc -p . || true'",
+    "watch": "ttsc -p . --watch",
     "prepublishOnly": "npm run build",
     "release": "npm run test && npm run build:production && npm version patch && git push --follow-tags",
     "test": "ts-node ./node_modules/jest/bin/jest.js --verbose"
