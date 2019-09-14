@@ -14,10 +14,6 @@
       "@plugins/*": ["src/plugins/*"]
     },
     "plugins": [
-      // {
-      //   "transform": "./src/plugins/ts_transform_remove_debug.ts",
-      //   "remove": ["debug", "this.debug"]
-      // },
       {
         "transform": "@zerollup/ts-transform-paths",
         "exclude": ["*"]
