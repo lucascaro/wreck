@@ -16,8 +16,10 @@
     "build:production": "npm run clean && ttsc -p . ",
     "watch": "ttsc -p . --watch",
     "prepublishOnly": "npm run build",
-    "release": "npm run test && npm run build:production && npm version patch && git push --follow-tags",
-    "test": "ts-node ./node_modules/jest/bin/jest.js --verbose"
+    "preRelease": "npm run test && npm run build:production && npm version ",
+    "release": "npm run preRelease patch && git push --follow-tags",
+    "release:minor": "npm run preRelease minor && git push --follow-tags",
+    "test": "jest"
   },
   "author": "Lucas Caro <lucascaro@gmail.com>",
   "license": "GPL-3",
